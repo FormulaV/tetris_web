@@ -11,11 +11,11 @@ Features:
   - Scoring and level (speed increases)
   - Ghost piece
   - Simple procedural background loop + SFX (no external files needed)
-  - Mobile friendly touch controls (simple)
+  - Mobile friendly touch controls (buttons + simple swipe)
 
 Deployment:
   - To run locally: open this file in Chrome/Firefox
-  - To host: push to GitHub and enable GitHub Pages (or drag-n-drop to Netlify)
+  - To host: push to GitHub and enable GitHub Pages (or drag-n-drop to Netlify / Vercel)
 -->
 
 <!doctype html>
@@ -42,6 +42,10 @@ Deployment:
   footer{position:fixed;left:12px;bottom:12px;color:#9fb8cf;font-size:12px}
   .hud{display:flex;gap:10px;align-items:center}
   .nextCanvas{background:#041226;border-radius:6px;padding:6px}
+
+  /* Mobile controls */
+  #mobile-controls{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);display:flex;gap:10px;z-index:9999}
+  #mobile-controls button{padding:12px 16px;font-size:18px;border-radius:10px;border:0;background:rgba(255,255,255,0.06);color:var(--accent);backdrop-filter: blur(4px)}
   @media(max-width:720px){.wrap{flex-direction:column;align-items:center}.info{width:95%}}
 </style>
 </head>
@@ -165,8 +169,7 @@ function placePiece(){ current.shape.forEach((row,r)=>row.forEach((v,c)=>{ if(v)
 function scoreFor(lines){ const map={1:100,2:300,3:500,4:800}; return map[lines]||0; }
 
 function spawn(){ if(!nextPiece) nextPiece = createPiece(nextFromBag()); current = nextPiece; nextPiece = createPiece(nextFromBag()); if(collide(board,current.shape,current.x,current.y)){ // game over
-    gameOver(); }
-}
+    gameOver(); } }
 
 function hardDrop(){ while(!collide(board,current.shape,current.x,current.y+1)){ current.y++; } placePiece(); playDrop(); spawn(); }
 
@@ -181,6 +184,11 @@ function rotateCurrent(){ const r = rotateShape(current.shape); // basic wall ki
   if(!collide(board,r,current.x-1,current.y)) { current.x--; current.shape=r; playClick(); return; }
   if(!collide(board,r,current.x+1,current.y)) { current.x++; current.shape=r; playClick(); return; }
 }
+
+// Provide wrapper functions used by mobile controls (fixes ReferenceError)
+function moveLeft(){ move(-1); }
+function moveRight(){ move(1); }
+function rotatePiece(){ rotateCurrent(); }
 
 function draw(){ // board
   ctx.clearRect(0,0,boardCanvas.width,boardCanvas.height);
@@ -235,5 +243,13 @@ window.addEventListener('click', ()=>{ if(!audioCtx && soundOn){ ensureAudio(); 
 
 gameInit();
 </script>
+  <div id="mobile-controls" style="position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); display: flex; gap: 10px; z-index: 9999;">
+    <button onclick="moveLeft()" style="padding: 12px 18px; font-size: 18px;">⬅️</button>
+    <button onclick="rotatePiece()" style="padding: 12px 18px; font-size: 18px;">🔄</button>
+    <button onclick="moveRight()" style="padding: 12px 18px; font-size: 18px;">➡️</button>
+    <button onclick="softDrop()" style="padding: 12px 18px; font-size: 18px;">⬇️</button>
+    <button onclick="hardDrop()" style="padding: 12px 18px; font-size: 18px;">⏬</button>
+  </div>
 </body>
 </html>
+

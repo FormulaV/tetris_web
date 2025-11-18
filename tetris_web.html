@@ -1,0 +1,239 @@
+<!--
+TETRIS (Web) - single file
+Save this as tetris-web.html and open in a browser.
+Controls:
+  Left / Right Arrows = move
+  Up = rotate
+  Down = soft drop
+  Space = hard drop
+  P = pause
+Features:
+  - Scoring and level (speed increases)
+  - Ghost piece
+  - Simple procedural background loop + SFX (no external files needed)
+  - Mobile friendly touch controls (simple)
+
+Deployment:
+  - To run locally: open this file in Chrome/Firefox
+  - To host: push to GitHub and enable GitHub Pages (or drag-n-drop to Netlify)
+-->
+
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Tetris (Web) — Single File</title>
+<style>
+  :root{--bg:#0b0f1a;--panel:#0f1724;--accent:#22d3ee;--muted:#94a3b8}
+  *{box-sizing:border-box}
+  body{margin:0;background:linear-gradient(180deg,#031022 0%, #071428 100%);color:#e6eef8;font-family:Inter,ui-sans-serif,system-ui,Segoe UI,Roboto,'Helvetica Neue',Arial}
+  .wrap{display:flex;gap:20px;align-items:flex-start;justify-content:center;padding:28px}
+  .game{background:var(--panel);padding:16px;border-radius:12px;box-shadow:0 6px 30px rgba(2,6,23,.6)}
+  canvas{background:#02040a;display:block;border-radius:6px}
+  .info{width:260px;padding:12px}
+  h1{font-size:18px;margin:6px 0;color:var(--accent)}
+  .label{color:var(--muted);font-size:13px}
+  .scoreBox{margin-top:12px;background:#061226;padding:10px;border-radius:8px}
+  .score{font-size:20px;font-weight:700}
+  .controls{margin-top:12px;font-size:13px;color:var(--muted)}
+  .btn{display:inline-block;padding:8px 12px;background:#0b1b2a;border-radius:8px;color:var(--accent);cursor:pointer;margin-top:10px}
+  .small{font-size:12px;color:#9fb8cf}
+  footer{position:fixed;left:12px;bottom:12px;color:#9fb8cf;font-size:12px}
+  .hud{display:flex;gap:10px;align-items:center}
+  .nextCanvas{background:#041226;border-radius:6px;padding:6px}
+  @media(max-width:720px){.wrap{flex-direction:column;align-items:center}.info{width:95%}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="game">
+    <canvas id="board" width="300" height="600"></canvas>
+  </div>
+  <div class="info">
+    <h1>Tetris — Web</h1>
+    <div class="label">Scoreboard</div>
+    <div class="scoreBox">
+      <div>Score: <span id="score" class="score">0</span></div>
+      <div class="small">Level: <span id="level">1</span> — Lines: <span id="lines">0</span></div>
+    </div>
+
+    <div style="margin-top:12px">Next:</div>
+    <canvas id="next" class="nextCanvas" width="120" height="120"></canvas>
+
+    <div class="controls">
+      <p><strong>Controls</strong></p>
+      <p>← → : Move &nbsp; &nbsp; ↑ : Rotate &nbsp; &nbsp; ↓ : Soft drop &nbsp; &nbsp; Space : Hard drop</p>
+      <p>P : Pause / Resume</p>
+    </div>
+
+    <div style="margin-top:10px">
+      <button id="btnRestart" class="btn">Restart</button>
+      <button id="btnToggleSound" class="btn">Toggle Sound</button>
+    </div>
+
+    <div class="small" style="margin-top:10px">This version uses WebAudio-generated BGM & SFX so no external files are required.</div>
+  </div>
+</div>
+<footer>Save this file and open in your browser — to deploy: GitHub Pages / Netlify / Vercel</footer>
+
+<script>
+// Tetris Web — single file implementation
+const COLS = 10, ROWS = 20, BLOCK = 30;
+const boardCanvas = document.getElementById('board');
+const ctx = boardCanvas.getContext('2d');
+const nextCanvas = document.getElementById('next').getContext('2d');
+const scoreEl = document.getElementById('score');
+const levelEl = document.getElementById('level');
+const linesEl = document.getElementById('lines');
+const btnRestart = document.getElementById('btnRestart');
+const btnToggleSound = document.getElementById('btnToggleSound');
+
+boardCanvas.width = COLS * BLOCK; boardCanvas.height = ROWS * BLOCK;
+
+// Pieces
+const SHAPES = {
+  I: [[1,1,1,1]],
+  O: [[1,1],[1,1]],
+  T: [[0,1,0],[1,1,1]],
+  J: [[1,0,0],[1,1,1]],
+  L: [[0,0,1],[1,1,1]],
+  S: [[0,1,1],[1,1,0]],
+  Z: [[1,1,0],[0,1,1]]
+};
+const COLORS = { I:'#00f0f0', O:'#f0f000', T:'#a000f0', J:'#0000f0', L:'#f08a00', S:'#00f000', Z:'#f00000' };
+const BAG = ['I','O','T','J','L','S','Z'];
+
+function makeEmptyBoard(){
+  const b = [];
+  for(let r=0;r<ROWS;r++){ b.push(new Array(COLS).fill(null)); }
+  return b;
+}
+
+let board = makeEmptyBoard();
+let score = 0, level = 1, totalLines = 0;
+let dropCounter = 0, dropInterval = 1000; // ms
+let lastTime = 0;
+let current = null; // {x,y,shape,key,color}
+let nextPiece = null;
+let isPaused = false;
+
+// WebAudio setup (procedural BGM + SFX)
+let audioCtx = null; let soundOn = true;
+function ensureAudio(){
+  if(!audioCtx){
+    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    startBGM();
+  }
+}
+
+function playClick(){ if(!soundOn) return; ensureAudio(); const o=audioCtx.createOscillator(); const g=audioCtx.createGain(); o.type='sine'; o.frequency.setValueAtTime(600,audioCtx.currentTime); g.gain.setValueAtTime(0.12,audioCtx.currentTime); o.connect(g); g.connect(audioCtx.destination); o.start(); o.stop(audioCtx.currentTime+0.06); }
+function playClear(){ if(!soundOn) return; ensureAudio(); const o=audioCtx.createOscillator(); const g=audioCtx.createGain(); o.type='sawtooth'; o.frequency.setValueAtTime(250,audioCtx.currentTime); g.gain.setValueAtTime(0.18,audioCtx.currentTime); o.connect(g); g.connect(audioCtx.destination); o.start(); o.frequency.exponentialRampToValueAtTime(800,audioCtx.currentTime+0.18); g.gain.exponentialRampToValueAtTime(0.0001,audioCtx.currentTime+0.35); o.stop(audioCtx.currentTime+0.4); }
+function playDrop(){ if(!soundOn) return; ensureAudio(); const o=audioCtx.createOscillator(); const g=audioCtx.createGain(); o.type='triangle'; o.frequency.setValueAtTime(120,audioCtx.currentTime); g.gain.setValueAtTime(0.08,audioCtx.currentTime); o.connect(g); g.connect(audioCtx.destination); o.start(); o.stop(audioCtx.currentTime+0.05); }
+
+// Simple looped background: arpeggio
+let bgmNodes = [];
+function startBGM(){ if(!soundOn) return; if(!audioCtx) return; stopBGM(); const t0 = audioCtx.currentTime; const notes=[220,330,440,330];
+  notes.forEach((n,i)=>{
+    const o = audioCtx.createOscillator(); const g = audioCtx.createGain(); o.type='square'; o.frequency.setValueAtTime(n, t0 + i*0.15); g.gain.setValueAtTime(0.03, t0 + i*0.15); o.connect(g); g.connect(audioCtx.destination); o.start(t0 + i*0.15); o.stop(t0 + i*0.15 + 0.4); bgmNodes.push(o);
+  });
+  // schedule repeating
+  bgmLoopTimer = setTimeout(()=>{ if(soundOn) startBGM(); }, 600);
+}
+let bgmLoopTimer = null;
+function stopBGM(){ if(bgmLoopTimer) { clearTimeout(bgmLoopTimer); bgmLoopTimer=null; } bgmNodes.forEach(n=>{ try{n.stop()}catch(e){} }); bgmNodes=[]; }
+
+// Game logic
+function randBag(){ const bag = BAG.slice(); for(let i=bag.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [bag[i],bag[j]]=[bag[j],bag[i]]; } return bag; }
+let bag = randBag();
+function nextFromBag(){ if(bag.length===0) bag = randBag(); return bag.pop(); }
+
+function createPiece(key){ return { key, shape: SHAPES[key].map(r=>r.slice()), x: Math.floor(COLS/2 - Math.ceil(SHAPES[key][0].length/2)), y: 0, color: COLORS[key] } }
+
+function rotateShape(shape){ const H=shape.length, W=shape[0].length; const out = Array.from({length:W},()=>Array(H).fill(0)); for(let r=0;r<H;r++) for(let c=0;c<W;c++) out[c][H-1-r]=shape[r][c]; return out; }
+
+function collide(board, shape, x, y){ for(let r=0;r<shape.length;r++) for(let c=0;c<shape[r].length;c++) if(shape[r][c]){ const bx=x+c, by=y+r; if(bx<0||bx>=COLS||by>=ROWS) return true; if(by>=0 && board[by][bx]) return true; } return false; }
+
+function placePiece(){ current.shape.forEach((row,r)=>row.forEach((v,c)=>{ if(v){ const bx=current.x+c, by=current.y+r; if(by>=0) board[by][bx]=current.color; } }));
+  // clear lines
+  let linesCleared=0; for(let r=ROWS-1;r>=0;r--){ if(board[r].every(cell=>cell)){ board.splice(r,1); board.unshift(new Array(COLS).fill(null)); linesCleared++; r++; } }
+  if(linesCleared>0){ totalLines += linesCleared; score += scoreFor(linesCleared); playClear(); }
+  // level up
+  level = Math.floor(totalLines/10)+1; dropInterval = Math.max(100, 1000 - (level-1)*80);
+}
+
+function scoreFor(lines){ const map={1:100,2:300,3:500,4:800}; return map[lines]||0; }
+
+function spawn(){ if(!nextPiece) nextPiece = createPiece(nextFromBag()); current = nextPiece; nextPiece = createPiece(nextFromBag()); if(collide(board,current.shape,current.x,current.y)){ // game over
+    gameOver(); }
+}
+
+function hardDrop(){ while(!collide(board,current.shape,current.x,current.y+1)){ current.y++; } placePiece(); playDrop(); spawn(); }
+
+function gameOver(){ isRunning=false; alert('Game Over\nScore: '+score); }
+
+function move(dx){ if(!collide(board,current.shape,current.x+dx,current.y)){ current.x += dx; playClick(); } }
+
+function softDrop(){ if(!collide(board,current.shape,current.x,current.y+1)){ current.y++; score++; } else { placePiece(); spawn(); } }
+
+function rotateCurrent(){ const r = rotateShape(current.shape); // basic wall kick
+  if(!collide(board,r,current.x,current.y)) { current.shape=r; playClick(); return; }
+  if(!collide(board,r,current.x-1,current.y)) { current.x--; current.shape=r; playClick(); return; }
+  if(!collide(board,r,current.x+1,current.y)) { current.x++; current.shape=r; playClick(); return; }
+}
+
+function draw(){ // board
+  ctx.clearRect(0,0,boardCanvas.width,boardCanvas.height);
+  // grid background
+  for(let r=0;r<ROWS;r++) for(let c=0;c<COLS;c++){ ctx.fillStyle = board[r][c] || '#071428'; ctx.fillRect(c*BLOCK, r*BLOCK, BLOCK-1, BLOCK-1); }
+  // ghost
+  const ghostY = computeGhostY(); drawShapeAt(current.shape, current.x, ghostY, 'rgba(255,255,255,0.08)');
+  // current
+  drawShapeAt(current.shape, current.x, current.y, current.color);
+}
+
+function drawShapeAt(shape,x,y,color){ for(let r=0;r<shape.length;r++) for(let c=0;c<shape[r].length;c++) if(shape[r][c]){ ctx.fillStyle = color; ctx.fillRect((x+c)*BLOCK, (y+r)*BLOCK, BLOCK-1, BLOCK-1); } }
+
+function computeGhostY(){ let y = current.y; while(!collide(board,current.shape,current.x,y+1)) y++; return y; }
+
+function drawNext(){ nextCanvas.clearRect(0,0,nextCanvas.canvas.width,nextCanvas.canvas.height); const s = nextPiece.shape; const size = BLOCK; const offX =  (nextCanvas.canvas.width - s[0].length*size)/2; const offY = (nextCanvas.canvas.height - s.length*size)/2; for(let r=0;r<s.length;r++) for(let c=0;c<s[r].length;c++) if(s[r][c]){ nextCanvas.fillStyle = nextPiece.color; nextCanvas.fillRect(offX + c*size, offY + r*size, size-2, size-2); } }
+
+let isRunning = true;
+function update(time=0){ if(!lastTime) lastTime=time; const delta = time - lastTime; lastTime = time; if(!isPaused){ dropCounter += delta; if(dropCounter > dropInterval){ dropCounter = 0; if(!collide(board,current.shape,current.x,current.y+1)){ current.y++; } else { placePiece(); spawn(); } } }
+  draw(); drawNext(); scoreEl.textContent = score; levelEl.textContent = level; linesEl.textContent = totalLines;
+  if(isRunning) requestAnimationFrame(update);
+}
+
+// Input
+window.addEventListener('keydown', e=>{
+  if(e.repeat) return;
+  if(e.key === 'ArrowLeft'){ move(-1); }
+  else if(e.key === 'ArrowRight'){ move(1); }
+  else if(e.key === 'ArrowUp'){ rotateCurrent(); }
+  else if(e.key === 'ArrowDown'){ softDrop(); }
+  else if(e.code === 'Space'){ hardDrop(); }
+  else if(e.key.toLowerCase() === 'p'){ isPaused = !isPaused; }
+});
+
+// Touch controls (simple)
+let touchStartX = null; boardCanvas.addEventListener('touchstart', e=>{
+  const t = e.touches[0]; touchStartX = t.clientX; }, {passive:true});
+boardCanvas.addEventListener('touchend', e=>{
+  const t = e.changedTouches[0]; const dx = t.clientX - touchStartX; if(Math.abs(dx) > 30) move(dx>0?1:-1); else rotateCurrent(); }, {passive:true});
+
+btnRestart.addEventListener('click', ()=>{ resetGame(); });
+btnToggleSound.addEventListener('click', ()=>{ soundOn = !soundOn; if(!soundOn){ stopBGM(); } else { ensureAudio(); startBGM(); } btnToggleSound.textContent = soundOn? 'Toggle Sound' : 'Sound Off'; });
+
+function resetGame(){ board = makeEmptyBoard(); score = 0; level=1; totalLines=0; bag = randBag(); nextPiece = createPiece(nextFromBag()); spawn(); isPaused=false; ensureAudio(); }
+
+function gameInit(){ ensureAudio(); resetGame(); lastTime = 0; isRunning=true; requestAnimationFrame(update); }
+
+// start
+nextPiece = createPiece(nextFromBag()); spawn(); // prepare
+// ensure user gesture for audio in some browsers
+window.addEventListener('click', ()=>{ if(!audioCtx && soundOn){ ensureAudio(); } }, {once:true});
+
+gameInit();
+</script>
+</body>
+</html>

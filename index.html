@@ -164,6 +164,27 @@
     .rival-score {
         color: #ff99ff;
     }
+    #availableRooms {
+    max-height: 300px;
+    overflow-y: auto;
+    padding-right: 5px;
+    }
+    .room-item {
+        padding: 10px;
+        background: #222;
+        border: 1px solid #444;
+        margin-bottom: 6px;
+        cursor: pointer;
+        border-radius: 6px;
+    }
+    .room-item:hover {
+        background: #333;
+    }
+    .empty-room {
+        color: #888;
+        text-align: center;
+        padding: 10px;
+    }
 
     /* Mobile adjustments */
     @media(max-width:720px){.wrap{flex-direction:column;align-items:center}.info-wrap{width:95%}}
@@ -858,6 +879,7 @@ resultBackBtn.addEventListener('click', function() {
     stopBGM(); // optional
     window.location.reload(); // reset semua state
 });
+setInterval(updateRoomListUI, 1000);
 
 
 // NEW BUTTON HANDLERS
@@ -963,6 +985,15 @@ function createNewRoom(){
     // Langsung tampilkan Waiting Room Host
     showLobbyScreen(); 
     alert(`Room "${roomName}" berhasil dibuat! ID Anda: ${playerID}. Tunggu Player 2.`);
+
+    // Update daftar room global
+    let roomList = JSON.parse(localStorage.getItem("tetris_room_list") || "[]");
+
+    // hindari duplikasi
+    roomList = roomList.filter(r => r !== roomName);
+    roomList.push(roomName);
+
+    localStorage.setItem("tetris_room_list", JSON.stringify(roomList));
 }
 
 // 2. Player 2 joins the room
@@ -1012,45 +1043,50 @@ function closeRoom(){
 }
 
 // 5. Update UI Join Game List
-function updateRoomListUI(){
-    roomListContainer.innerHTML = '';
-    const roomData = JSON.parse(localStorage.getItem(localStorageKey));
-    
-    if (roomData && (roomData.status === "WAITING" || roomData.status === "READY_TO_START")) { // Tampilkan jika menunggu/siap
-        noRoomMessage.style.display = 'none';
-        
-        const roomDiv = document.createElement('div');
-        roomDiv.style.cssText = 'display:flex; justify-content:space-between; align-items:center; padding: 8px; margin-bottom: 5px; background: #1a2c38; border-radius: 4px;';
-        
-        const isJoinable = roomData.status === "WAITING";
-        const buttonText = isJoinable ? "Join" : "Lobby Penuh";
-        const buttonDisabled = !isJoinable;
+function updateRoomListUI() {
+    // FIX: Ubah "availableRooms" menjadi "roomListContainer" sesuai HTML
+    const listContainer = document.getElementById("roomListContainer");
+    if (!listContainer) return;
 
-        roomDiv.innerHTML = `
-            <span style="color:var(--accent);">${roomData.roomName} (${roomData.players}/2)</span>
-            <button class="btn join-room-btn" 
-                    data-host-id="${roomData.hostId}" 
-                    data-room-name="${roomData.roomName}" 
-                    style="padding: 4px 8px; font-size: 12px; ${buttonDisabled ? 'background:#888; cursor:default;' : ''}" 
-                    ${buttonDisabled ? 'disabled' : ''}>
-                ${buttonText}
-            </button>
-        `;
-        roomListContainer.appendChild(roomDiv);
-        
-        // Tambahkan event listener untuk tombol Join
-        if(isJoinable) {
-            roomDiv.querySelector('.join-room-btn').addEventListener('click', function(e) {
-                const btn = e.target;
-                joinRoom(btn.dataset.roomName, btn.dataset.hostId);
-            });
+    listContainer.innerHTML = "";
+
+    // Ambil daftar room dari localStorage
+    let roomList = JSON.parse(localStorage.getItem("tetris_room_list") || "[]");
+
+    if (roomList.length === 0) {
+        listContainer.innerHTML = "<p style='color:#888; padding:10px;'>Tidak ada room tersedia</p>";
+        return;
+    }
+
+    roomList.forEach(roomName => {
+        // Cek detail spesifik room tersebut
+        const roomKey = "tetris_multiplayer_room"; // Menggunakan key utama (karena single room logic di kode ini)
+        const roomData = JSON.parse(localStorage.getItem(roomKey) || "null");
+
+        // Validasi: Pastikan roomData ada, namanya cocok, dan statusnya WAITING
+        if (roomData && roomData.roomName === roomName && roomData.status === "WAITING") {
+            
+            const div = document.createElement("div");
+            div.style.cssText = "padding: 10px; background: #222; border: 1px solid #444; margin-bottom: 6px; cursor: pointer; border-radius: 6px; display:flex; justify-content:space-between; align-items:center;";
+            
+            div.innerHTML = `
+                <span style="color:var(--accent); font-weight:bold;">${roomName}</span>
+                <span style="font-size:12px; color:#aaa;">Host: ${roomData.hostId}</span>
+            `;
+
+            // Klik div untuk join
+            div.onclick = () => joinRoom(roomName, roomData.hostId);
+
+            listContainer.appendChild(div);
         }
-        
-    } else {
-        roomListContainer.appendChild(noRoomMessage);
-        noRoomMessage.style.display = 'block';
+    });
+    
+    // Jika setelah filter tidak ada room yang valid ditampilkan
+    if (listContainer.children.length === 0) {
+        listContainer.innerHTML = "<p style='color:#888; padding:10px;'>Tidak ada room yang bisa dimasuki.</p>";
     }
 }
+
 
 // 6. Lobby Screen (Digunakan Host dan Joiner)
 function showLobbyScreen(){
@@ -1126,62 +1162,80 @@ function sendPlayerFinished() {
 
 // 7. Communication Channel (localStorage Listener)
 window.addEventListener('storage', function(e) {
+    // 1. Cek jika yang berubah adalah DAFTAR ROOM (untuk menu Join Game)
+    if (e.key === "tetris_room_list") {
+        updateRoomListUI();
+        return; // Berhenti di sini, tidak perlu cek status game
+    }
+
+    // 2. Cek validasi Key Game (Hanya proses jika key sesuai dan ada datanya)
     if (e.key !== localStorageKey || !e.newValue) return;
 
+    // 3. Parse data baru (Sekarang variabel ini bisa diakses oleh kode di bawah)
     const roomUpdate = JSON.parse(e.newValue);
 
-    // Jika bukan dalam room yang sama → abaikan
-    if (!activeRoom || activeRoom.roomName !== roomUpdate.roomName) return;
+    // 4. Jika kita belum masuk room (masih di menu list), tapi ada update status room
+    // (misalnya room jadi penuh/in-game), refresh tampilan list.
+    if (!activeRoom) {
+        if (document.getElementById('joinGameList').style.display !== 'none') {
+            updateRoomListUI();
+        }
+        return; // Kita tidak dalam room, abaikan update status gameplay
+    }
 
+    // 5. Pastikan update ini untuk room yang sedang kita tempati
+    if (activeRoom.roomName !== roomUpdate.roomName) return;
+
+    // 6. UPDATE GLOBAL STATE
     activeRoom = roomUpdate;
 
-    // === LOBBY UPDATE ===
+    // === LOGIKA STATUS GAME ===
+
+    // A. LOBBY UPDATE (Player join/ready)
     if (activeRoom.status === 'WAITING' || activeRoom.status === 'READY_TO_START') {
         showLobbyScreen();
         return;
     }
 
-    // === GAME START ===
-    if (activeRoom.status === 'IN_GAME' &&
-        !activeRoom.p1.finished &&
-        !(activeRoom.p2 && activeRoom.p2.finished)) {
-
-        if (!isRunning) {
-            alert("Game dimulai oleh Host!");
-            startGame(true);
-        }
-
-        if (isMultiplayer) {
-            const rivalData = isHost ? roomUpdate.p2 : roomUpdate.p1;
-            if (rivalData) {
-                rivalScoreEl.textContent = rivalData.score.toLocaleString();
+    // B. GAME START (Sinkronisasi Mulai)
+    if (activeRoom.status === 'IN_GAME') {
+        // Cek apakah game sudah selesai untuk salah satu pihak agar tidak restart loop
+        if (!activeRoom.p1.finished && !(activeRoom.p2 && activeRoom.p2.finished)) {
+            if (!isRunning) {
+                alert("Game dimulai oleh Host!");
+                startGame(true);
+            }
+            
+            // Update Live Score Lawan
+            if (isMultiplayer) {
+                const rivalData = isHost ? roomUpdate.p2 : roomUpdate.p1;
+                if (rivalData) {
+                    rivalScoreEl.textContent = rivalData.score.toLocaleString();
+                }
             }
         }
         return;
     }
 
-    // === SALAH SATU GAMEOVER ===
+    // C. SALAH SATU GAMEOVER (Menunggu lawan)
     if (activeRoom.status === 'GAMEOVER') {
-
-        if (activeRoom.p1.status === 'GAMEOVER' &&
-            activeRoom.p2.status === 'GAMEOVER') {
-
-            // Kedua pemain gameover → langsung buka hasil
+        // Jika kedua pemain sudah Game Over -> Langsung ke hasil
+        if (activeRoom.p1.status === 'GAMEOVER' && activeRoom.p2 && activeRoom.p2.status === 'GAMEOVER') {
             showMultiplayerResult(activeRoom);
             return;
         }
 
-        // Lawan gameover lebih dulu, tapi kita masih main
-        if (activeRoom.gameoverId !== playerID) {
-            // tidak melakukan apa-apa
+        // Jika lawan Game Over tapi kita masih main -> Beri notifikasi
+        if (activeRoom.gameoverId !== playerID && isRunning) {
+             // Opsional: Toast notification atau visual cue
+             // alert("Lawan Game Over!"); // Terkadang mengganggu fokus, bisa di-skip
         }
         return;
     }
 
-    // === MODE FINISHING (KEDUA PLAYER MENU HASIL) ===
+    // D. FINISHING (Keduanya selesai, tampilkan hasil akhir)
     if (activeRoom.status === 'FINISHING') {
-
-        // Jika sedang melihat resultMenu → update score otomatis
+        // Update skor secara real-time jika menu hasil sudah terbuka
         if (resultMenu.style.display === 'flex') {
             const p1 = activeRoom.p1.score ?? 0;
             const p2 = activeRoom.p2?.score ?? 0;
@@ -1189,7 +1243,6 @@ window.addEventListener('storage', function(e) {
             resultP1.textContent = p1.toLocaleString();
             resultP2.textContent = p2.toLocaleString();
 
-            // tampilkan pemenang bila kedua finished
             if (activeRoom.p1.finished && activeRoom.p2?.finished) {
                 if (p1 > p2) winnerText.textContent = "Pemenang: PLAYER 1 (HOST)";
                 else if (p2 > p1) winnerText.textContent = "Pemenang: PLAYER 2 (JOINER)";
@@ -1197,7 +1250,7 @@ window.addEventListener('storage', function(e) {
             }
         }
 
-        // Jika kedua player finished → buka menu hasil jika belum terbuka
+        // Buka menu hasil jika belum terbuka dan kedua pemain sudah selesai
         if (activeRoom.p1.finished && activeRoom.p2?.finished) {
             if (resultMenu.style.display !== 'flex') {
                 showMultiplayerResult(activeRoom);

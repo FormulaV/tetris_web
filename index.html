@@ -3,49 +3,284 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>Tetris (Web) — Single File</title>
+<title>Tetris (Web) — Custom UI (Multiplayer Test)</title>
 <style>
-  :root{--bg:#0b0f1a;--panel:#0f1724;--accent:#22d3ee;--muted:#94a3b8}
-  *{box-sizing:border-box}
-  body{margin:0;background:linear-gradient(180deg,#031022 0%, #071428 100%);color:#e6eef8;font-family:Inter,ui-sans-serif,system-ui,Segoe UI,Roboto,'Helvetica Neue',Arial}
-  .wrap{display:flex;gap:20px;align-items:flex-start;justify-content:center;padding:28px}
-  .game{background:var(--panel);padding:16px;border-radius:12px;box-shadow:0 6px 30px rgba(2,6,23,.6)}
-  canvas{background:#02040a;display:block;border-radius:6px}
-  .info{width:260px;padding:12px}
-  h1{font-size:18px;margin:6px 0;color:var(--accent)}
-  .label{color:var(--muted);font-size:13px}
-  .scoreBox{margin-top:12px;background:#061226;padding:10px;border-radius:8px}
-  .score{font-size:20px;font-weight:700}
-  .controls{margin-top:12px;font-size:13px;color:var(--muted)}
-  .btn{display:inline-block;padding:8px 12px;background:#0b1b2a;border-radius:8px;color:var(--accent);cursor:pointer;margin-top:10px;border:0}
-  .small{font-size:12px;color:#9fb8cf}
-  footer{position:fixed;left:12px;bottom:12px;color:#9fb8cf;font-size:12px}
-  .hud{display:flex;gap:10px;align-items:center}
-  .nextCanvas{background:#041226;border-radius:6px;padding:6px}
-  /* Mobile controls */
-  #mobile-controls{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);display:flex;gap:10px;z-index:9999}
-  #mobile-controls button{padding:12px 16px;font-size:18px;border-radius:10px;border:0;background:rgba(255,255,255,0.06);color:var(--accent);backdrop-filter: blur(4px)}
-  /* Overlays */
-  .overlay{position:fixed;inset:0;background:rgba(2,6,23,0.92);display:flex;align-items:center;justify-content:center;z-index:10000}
-  .panel{background:var(--panel);padding:20px;border-radius:12px;min-width:280px}
-  @media(max-width:720px){.wrap{flex-direction:column;align-items:center}.info{width:95%}}
+/* CUSTOM UI THEME BASED ON USER IMAGE */
+/* ... (STYLE DIBIARKAN SAMA PERSIS) ... */
+    :root{
+        --bg-color:#32534f; /* Dark greenish background */
+        --panel-bg:#0a1a1f; /* Almost black for inner panels */
+        --accent:#c0f0f0; /* Light cyan/blue for outlines and text */
+        --muted:#a0d0d0; /* Muted text color */
+        --grid-line: rgba(255,255,255,0.08); /* Color for grid lines */
+        --outer-border: #4499b2; /* Bright blue outline */
+    }
+    *{box-sizing:border-box}
+    body{
+        margin:0;
+        /* BACKGROUND YANG DIKEMBALIKAN */
+        background:linear-gradient(180deg, #3f7069 0%, #32534f 100%); /* Greenish-blue gradient */
+        color:#e6f0f0; /* Lighter text color */
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        min-height: 100vh;
+        overflow: hidden;
+    }
+    .wrap{
+        display:flex;
+        gap:25px; 
+        align-items:flex-start;
+        justify-content:center;
+        padding:28px;
+    }
+    .game{
+        background:var(--panel-bg);
+        padding:10px; /* Minimal padding for the main area */
+        border-radius:2px;
+        box-shadow:0 0 15px rgba(0,0,0,0.8);
+        border: 2px solid var(--outer-border); /* Outer border glow effect */
+    }
+    canvas#board{
+        background:#02040a; /* Darkest background for the playfield */
+        display:block;
+        border-radius:0;
+    }
+    .info-wrap{
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        width: 140px; /* Adjusted width to match side panel style */
+    }
+    .info{
+        width:100%;
+        background:var(--panel-bg);
+        padding:12px;
+        border-radius:2px;
+        border: 2px solid var(--outer-border);
+        box-shadow:0 0 10px rgba(0,0,0,0.5);
+    }
+    h1{display:none} /* Hide main title */
+    
+    .next-panel, .hold-panel {
+        width: 100%;
+        padding: 8px;
+        background: var(--panel-bg);
+        border: 2px solid var(--outer-border);
+        box-shadow: 0 0 10px rgba(0,0,0,0.5);
+        border-radius: 2px;
+        text-align: center;
+    }
+    .next-panel h3, .hold-panel h3 {
+        color: var(--accent);
+        font-size: 14px;
+        margin: 0 0 5px 0;
+        font-weight: 400;
+        letter-spacing: 1px;
+    }
+    .nextCanvas, .holdCanvas{
+        background:#041226;
+        border-radius:2px;
+        padding:4px;
+        margin: 0 auto;
+        display: block;
+    }
+    .hud-wrap {
+        display: flex;
+        flex-direction: column;
+        gap: 15px;
+    }
+    .stat-box{
+        color: var(--accent);
+        text-align: right;
+        font-size: 16px;
+        font-weight: 700;
+        margin-top: 5px;
+        padding-right: 5px;
+    }
+    .stat-label{
+        color: var(--muted);
+        font-size: 12px;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        margin-top: 10px;
+    }
+    .stat-group{
+        margin-bottom: 15px;
+        padding-left: 5px;
+    }
+    
+    /* Time box styling */
+    #time-box {
+        margin-top: 20px;
+        text-align: center;
+    }
+    #time-label {
+        font-size: 12px;
+        color: var(--muted);
+        text-transform: uppercase;
+        letter-spacing: 1px;
+    }
+    #time-value {
+        font-size: 24px;
+        color: var(--accent);
+        font-weight: 700;
+        margin-top: 2px;
+    }
+
+    /* Buttons and controls */
+    .controls, .small, footer { display: none; }
+    .btn{
+        background: #0b1b2a;
+        color: var(--accent);
+        border: 1px solid var(--accent);
+        padding: 6px 10px;
+        border-radius: 6px;
+        cursor: pointer;
+        transition: background 0.2s;
+    }
+    .btn:hover{ background: #1a2c38; }
+
+    /* Overlays for Menus */
+    .overlay{position:fixed;inset:0;background:rgba(2,6,23,0.92);display:flex;align-items:center;justify-content:center;z-index:10000}
+    .panel{background:var(--panel-bg);padding:20px;border-radius:12px;min-width:280px; border: 2px solid var(--outer-border);}
+    
+    /* Game Over Menu specific styling */
+    #gameOverMenu h2 {
+        color: #f00; /* Merah untuk Game Over */
+        margin-top: 0;
+        font-size: 28px;
+        text-shadow: 0 0 10px #f00;
+    }
+
+    /* Multiplayer Status Info */
+    #multiplayerStatus {
+        color: #ffcc00;
+        font-size: 12px;
+        margin-top: 15px;
+        text-align: center;
+    }
+    .rival-score {
+        color: #ff99ff;
+    }
+
+    /* Mobile adjustments */
+    @media(max-width:720px){.wrap{flex-direction:column;align-items:center}.info-wrap{width:95%}}
 </style>
 </head>
 <body>
 
-<!-- MAIN MENU -->
 <div id="mainMenu" class="overlay">
   <div class="panel" style="text-align:center">
-    <h1 style="color:var(--accent);margin:4px 0 12px 0">TETRIS</h1>
+    <h1 style="color:var(--accent);margin:4px 0 12px 0; display: block;">TETRIS</h1>
     <div style="display:flex;flex-direction:column;gap:10px;align-items:center">
-      <button id="startBtn" class="btn">Start Game</button>
+      <button id="singleplayerBtn" class="btn">Singleplayer</button>
+      <button id="multiplayerBtn" class="btn">Multiplayer (PC Only)</button>
       <button id="openSettingsBtn" class="btn">Settings</button>
     </div>
-    <div class="small" style="margin-top:10px">Tap anywhere to enable sound (mobile)</div>
   </div>
 </div>
 
-<!-- SETTINGS -->
+<div id="waitingOpponentMenu" class="overlay" style="display:none;">
+  <div class="panel" style="text-align:center; min-width:300px;">
+    <h2 style="color:var(--accent);">Game Over</h2>
+    <p style="color:#ccc; margin-bottom:15px;">Anda telah selesai bermain.</p>
+
+    <button id="goToResultBtn" class="btn">Lihat Hasil</button>
+  </div>
+</div>
+
+
+<div id="resultMenu" class="overlay" style="display:none;">
+  <div class="panel" style="text-align:center;">
+    <h2 style="color:var(--accent); margin-bottom:10px;">HASIL PERTANDINGAN</h2>
+
+    <p style="color:#fff;">Player 1 (Host): 
+       <span id="resultP1" style="color:var(--accent); font-weight:bold;"></span>
+    </p>
+
+    <p style="color:#fff;">Player 2 (Joiner): 
+       <span id="resultP2" style="color:var(--accent); font-weight:bold;"></span>
+    </p>
+
+    <h3 id="winnerText" style="color:#00ff00; margin-top:20px;"></h3>
+
+    <button id="resultBackBtn" class="btn" style="margin-top:20px;">Kembali ke Menu Utama</button>
+  </div>
+</div>
+
+
+<div id="singleplayerMenu" class="overlay" style="display:none;">
+    <div class="panel" style="text-align:center">
+        <h2 style="color:var(--accent);margin:4px 0 12px 0;">SINGLEPLAYER</h2>
+        <div style="display:flex;flex-direction:column;gap:10px;align-items:center">
+            <button id="startBtn" class="btn">Start Game</button>
+            <button id="backFromSPBtn" class="btn">Back</button>
+        </div>
+    </div>
+</div>
+
+<div id="multiplayerMenu" class="overlay" style="display:none;">
+    <div class="panel" style="text-align:center">
+        <h2 style="color:#f0f000;margin:4px 0 12px 0;">MULTIPLAYER</h2>
+        <div style="display:flex;flex-direction:column;gap:10px;align-items:center">
+            <button id="openHostMenuBtn" class="btn">Host Game</button>
+            <button id="openJoinMenuBtn" class="btn">Join Game</button>
+            <button id="backFromMPBtn" class="btn">Back</button>
+        </div>
+    </div>
+</div>
+
+<div id="hostGameMenu" class="overlay" style="display:none;">
+    <div class="panel" style="text-align:center">
+        <h2 style="color:#00f0f0;margin:4px 0 12px 0;">HOST GAME: Buat Room</h2>
+        <p style="color:var(--muted); font-size: 14px;">Maksimum 2 Pemain (Anda & 1 Lawan).</p>
+        <div style="display:flex;flex-direction:column;gap:10px;align-items:center; margin-top: 15px;">
+            <input type="text" id="roomNameInput" placeholder="Masukkan Nama Room (Contoh: RoomKu)" 
+                        style="padding:8px; border-radius:6px; border:1px solid var(--accent); background:#061226; color:var(--accent); width: 100%;">
+            <button id="createRoomBtn" class="btn">Buat Room</button>
+            <button id="backFromHostBtn" class="btn">Kembali</button>
+        </div>
+    </div>
+</div>
+
+<div id="joinGameList" class="overlay" style="display:none;">
+    <div class="panel" style="text-align:center">
+        <h2 style="color:#f0f000;margin:4px 0 12px 0;">JOIN GAME: Pilih Room</h2>
+        <div id="roomListContainer" style="min-height: 50px; padding: 10px; border: 1px solid var(--muted); border-radius: 6px; background: #061226;">
+            <p id="noRoomMessage" style="color:var(--muted); font-size: 14px;">Tidak ada room yang tersedia.</p>
+            </div>
+        <div style="display:flex;flex-direction:column;gap:10px;align-items:center; margin-top: 15px;">
+            <button id="backFromJoinBtn" class="btn">Kembali</button>
+        </div>
+    </div>
+</div>
+
+<div id="hostWaitingRoom" class="overlay" style="display:none;">
+    <div class="panel" style="text-align:center">
+        <h2 style="color:#00f0f0;margin:4px 0 12px 0;">LOBBY: <span id="lobbyRoomName">Room A</span></h2>
+        <p style="color:var(--muted);">Menunggu Player 2...</p>
+
+        <div style="display:flex; justify-content:center; gap: 40px; margin: 20px 0;">
+            <div style="padding: 10px; border: 1px solid var(--accent); border-radius: 6px; background: #1a2c38;">
+                <h3 style="margin: 0; color: var(--accent);">PLAYER 1 (HOST)</h3>
+                <p style="margin: 5px 0 0 0; color: #fff;">**Anda**</p>
+            </div>
+
+            <div id="player2Box" style="padding: 10px; border: 1px dashed var(--muted); border-radius: 6px; background: #1a2c38;">
+                <h3 style="margin: 0; color: var(--muted);">PLAYER 2</h3>
+                <p id="player2Name" style="margin: 5px 0 0 0; color: #fff;">*Menunggu...*</p>
+            </div>
+        </div>
+
+        <div style="display:flex;flex-direction:column;gap:10px;align-items:center; margin-top: 15px;">
+            <button id="startGameMultiplayerBtn" class="btn" disabled style="background:#444;">Start Game (Multiplayer)</button>
+            <button id="closeRoomBtn" class="btn">Tutup Room & Kembali</button>
+        </div>
+    </div>
+</div>
+
 <div id="settingsMenu" class="overlay" style="display:none;">
   <div class="panel">
     <h2 style="color:var(--accent);margin-top:0">Settings</h2>
@@ -65,7 +300,6 @@
   </div>
 </div>
 
-<!-- PAUSE MENU -->
 <div id="pauseMenu" class="overlay" style="display:none;">
   <div class="panel">
     <h2 style="color:var(--accent);margin-top:0">Paused</h2>
@@ -78,61 +312,143 @@
   </div>
 </div>
 
-<div class="wrap">
-  <div class="game">
-    <canvas id="board" width="300" height="600"></canvas>
-  </div>
-  <div class="info">
-    <h1>Tetris — Web</h1>
-    <div class="label">Scoreboard</div>
-    <div>High Score: <span id="highscore" class="score">0</span></div>
-    <div class="scoreBox">
-      <div>Score: <span id="score" class="score">0</span></div>
-      <div class="small">Level: <span id="level">1</span> — Lines: <span id="lines">0</span></div>
+<div id="gameOverMenu" class="overlay" style="display:none;">
+  <div class="panel" style="text-align:center">
+    <h2>GAME OVER!</h2>
+    <p>Score Akhir: <span id="finalScore" style="font-size: 24px; font-weight: 700; color: var(--accent);">0</span></p>
+    <p>High Score: <span id="finalHighScore" style="font-size: 16px; color: var(--muted);">0</span></p>
+    <div style="display:flex;flex-direction:column;gap:8px; margin-top: 15px;">
+      <button id="restartFromGameOverBtn" class="btn">Restart</button>
+      <button id="exitFromGameOverBtn" class="btn">Kembali ke Menu Utama</button>
     </div>
-
-    <div style="margin-top:12px">Next:</div>
-    <canvas id="next" class="nextCanvas" width="120" height="120"></canvas>
-
-    <div class="controls">
-      <p><strong>Controls</strong></p>
-      <p>← → : Move &nbsp; &nbsp; ↑ : Rotate &nbsp; &nbsp; ↓ : Soft drop &nbsp; &nbsp; Space : Hard drop</p>
-      <p>P : Pause / Resume</p>
-    </div>
-
-    <div style="margin-top:10px">
-      <button id="btnRestart2" class="btn">Restart</button>
-      <button id="btnToggleSound2" class="btn">Toggle Sound</button>
-      <button id="btnOpenPause" class="btn">Menu</button>
-    </div>
-
-    <div class="small" style="margin-top:10px">This version uses WebAudio-generated BGM & SFX so no external files are required.</div>
   </div>
 </div>
+
+<div class="wrap">
+    <div class="info-wrap">
+        <div class="hold-panel">
+            <h3>Ⓗ HOLD</h3>
+            <canvas id="hold" class="holdCanvas" width="120" height="80"></canvas>
+        </div>
+        
+        <div class="info">
+            <div class="stat-group">
+                <div class="stat-label">LINES</div>
+                <div id="lines" class="stat-box">0</div>
+            </div>
+            <div class="stat-group">
+                <div class="stat-label">LEVEL</div>
+                <div id="level" class="stat-box">1</div>
+            </div>
+            <div class="stat-group">
+                <div class="stat-label">SCORE</div>
+                <div id="score" class="stat-box">0</div>
+            </div>
+            <div class="stat-group">
+                <div class="stat-label">HIGH SCORE</div>
+                <div id="highscore" class="stat-box">0</div>
+            </div>
+            <div id="multiplayerStatus" style="font-size: 11px; margin-top: 15px; text-align: center;">Mode: Singleplayer</div>
+            <div id="rivalScoreContainer" class="stat-group" style="display:none; margin-top: 10px;">
+                <div class="stat-label rival-score">RIVAL SCORE</div>
+                <div id="rivalScore" class="stat-box rival-score">0</div>
+            </div>
+
+            <div style="margin-top:10px; display: none;">
+                <button id="btnRestart2" class="btn">Restart</button>
+                <button id="btnToggleSound2" class="btn">Toggle Sound</button>
+                <button id="btnOpenPause" class="btn">Menu</button>
+            </div>
+        </div>
+    </div>
+    
+    <div class="game">
+        <canvas id="board" width="300" height="600"></canvas>
+    </div>
+
+    <div class="info-wrap">
+        <div class="next-panel">
+            <h3>NEXT</h3>
+            <canvas id="next" class="nextCanvas" width="120" height="180"></canvas>
+        </div>
+        
+        <div class="info" id="time-box">
+            <div id="time-label">TIME</div>
+            <div id="time-value">00:00:00</div>
+        </div>
+    </div>
+</div>
+
 <footer>Save this file and open in your browser — to deploy: GitHub Pages / Netlify / Vercel</footer>
 
 <script>
 /*
   Clean single-file Tetris with menus.
-  This rewrite fixes earlier syntax issues and keeps behavior:
-  - Main menu overlay (Start / Settings)
-  - Settings overlay (music/sfx volume, theme)
-  - Pause menu (Resume / Restart / Settings / Exit)
-  - Mobile controls at bottom
+  MODIFIED FOR CUSTOM UI AND ADDED GRID DRAWING / TIME TRACKING
+  FIXED: Game Over Menu and BGM handling.
+  ADDED: Local Storage-based 2-Player Multiplayer Simulation (2 separate tabs)
 */
+
+const waitingOpponentMenu = document.getElementById('waitingOpponentMenu');
+const resultMenu = document.getElementById('resultMenu');
+const resultP1 = document.getElementById('resultP1');
+const resultP2 = document.getElementById('resultP2');
+const winnerText = document.getElementById('winnerText');
+const resultBackBtn = document.getElementById('resultBackBtn');
+
 
 const COLS = 10, ROWS = 20, BLOCK = 30;
 const boardCanvas = document.getElementById('board');
 const ctx = boardCanvas.getContext('2d');
-const nextCanvas = document.getElementById('next').getContext('2d');
+const nextCanvasCtx = document.getElementById('next').getContext('2d');
+const holdCanvasCtx = document.getElementById('hold').getContext('2d');
 const scoreEl = document.getElementById('score');
 const levelEl = document.getElementById('level');
 const linesEl = document.getElementById('lines');
+const timeEl = document.getElementById('time-value');
+const finalScoreEl = document.getElementById('finalScore');
+const finalHighScoreEl = document.getElementById('finalHighScore');
+const multiplayerStatusEl = document.getElementById('multiplayerStatus');
+const rivalScoreEl = document.getElementById('rivalScore');
+const rivalScoreContainer = document.getElementById('rivalScoreContainer');
+
 
 // overlays & buttons
 const mainMenu = document.getElementById('mainMenu');
 const settingsMenu = document.getElementById('settingsMenu');
 const pauseMenu = document.getElementById('pauseMenu');
+const gameOverMenu = document.getElementById('gameOverMenu'); // NEW
+const singleplayerMenu = document.getElementById('singleplayerMenu');
+const multiplayerMenu = document.getElementById('multiplayerMenu');
+const singleplayerBtn = document.getElementById('singleplayerBtn');
+const multiplayerBtn = document.getElementById('multiplayerBtn');
+const backFromSPBtn = document.getElementById('backFromSPBtn');
+const backFromMPBtn = document.getElementById('backFromMPBtn');
+const openHostMenuBtn = document.getElementById('openHostMenuBtn');
+const openJoinMenuBtn = document.getElementById('openJoinMenuBtn');
+const hostGameMenu = document.getElementById('hostGameMenu'); // NEW
+const joinGameList = document.getElementById('joinGameList'); // NEW
+const hostWaitingRoom = document.getElementById('hostWaitingRoom'); // NEW
+const startGameMultiplayerBtn = document.getElementById('startGameMultiplayerBtn'); // NEW
+const closeRoomBtn = document.getElementById('closeRoomBtn'); // NEW
+const lobbyRoomName = document.getElementById('lobbyRoomName'); // NEW
+const player2Name = document.getElementById('player2Name'); // NEW
+const player2Box = document.getElementById('player2Box'); // NEW
+const createRoomBtn = document.getElementById('createRoomBtn');
+const backFromHostBtn = document.getElementById('backFromHostBtn');
+const backFromJoinBtn = document.getElementById('backFromJoinBtn');
+const roomNameInput = document.getElementById('roomNameInput');
+const roomListContainer = document.getElementById('roomListContainer');
+const noRoomMessage = document.getElementById('noRoomMessage');
+
+// GLOBAL MULTIPLAYER STATE
+let activeRoom = null; // Contoh: { name: "RoomKu", hostId: "ID1", players: 1, status: "Waiting", p1: {...}, p2: {...} }
+let isHost = false; // Status apakah user adalah host
+let isMultiplayer = false; // Status apakah game sedang berjalan dalam mode Multiplayer
+let playerID = Math.random().toString(36).substring(2, 9); // ID Unik untuk tab ini
+let opponentID = null; // ID lawan
+let localStorageKey = 'tetris_multiplayer_room';
+
 const startBtn = document.getElementById('startBtn');
 const openSettingsBtn = document.getElementById('openSettingsBtn');
 const closeSettingsBtn = document.getElementById('closeSettingsBtn');
@@ -140,16 +456,25 @@ const settingsFromPauseBtn = document.getElementById('settingsFromPauseBtn');
 const resumeBtn = document.getElementById('resumeBtn');
 const restartBtn = document.getElementById('restartBtn');
 const exitToMenuBtn = document.getElementById('exitToMenuBtn');
+const restartFromGameOverBtn = document.getElementById('restartFromGameOverBtn'); // NEW
+const exitFromGameOverBtn = document.getElementById('exitFromGameOverBtn'); // NEW
 const btnRestart2 = document.getElementById('btnRestart2');
 const btnToggleSound2 = document.getElementById('btnToggleSound2');
 const btnOpenPause = document.getElementById('btnOpenPause');
+const goToResultBtn = document.getElementById('goToResultBtn');
+
+goToResultBtn.addEventListener('click', function () {
+    sendPlayerFinished();
+    showMultiplayerResult(activeRoom);
+});
+
 
 boardCanvas.width = COLS * BLOCK;
 boardCanvas.height = ROWS * BLOCK;
 
 // pieces
 const SHAPES = { I:[[1,1,1,1]], O:[[1,1],[1,1]], T:[[0,1,0],[1,1,1]], J:[[1,0,0],[1,1,1]], L:[[0,0,1],[1,1,1]], S:[[0,1,1],[1,1,0]], Z:[[1,1,0],[0,1,1]] };
-const COLORS = { I:'#00f0f0', O:'#f0f000', T:'#a000f0', J:'#0000f0', L:'#f08a00', S:'#00f000', Z:'#f00000' };
+const COLORS = { I:'rgb(0,240,240)', O:'rgb(240,240,0)', T:'rgb(160,0,240)', J:'rgb(0,0,240)', L:'rgb(240,140,0)', S:'rgb(0,240,0)', Z:'rgb(240,0,0)' };
 const BAG = ['I','O','T','J','L','S','Z'];
 
 function makeEmptyBoard(){ const b=[]; for(let r=0;r<ROWS;r++) b.push(new Array(COLS).fill(null)); return b; }
@@ -158,17 +483,68 @@ let score = 0;
 let highScore = parseInt(localStorage.getItem('tetris_highscore') || '0', 10) || 0;
 let level = 1, totalLines = 0;
 let dropCounter = 0, dropInterval = 1000, lastTime = 0;
-let current = null, nextPiece = null;
+let current = null, nextPiece = null, holdPiece = null;
 let isPaused = true, isRunning = false;
+let gameStartTime = 0;
 
 // audio
 let audioCtx = null, musicGain = null, sfxGain = null, soundOn = true;
-function ensureAudio(){ if(!audioCtx){ audioCtx = new (window.AudioContext || window.webkitAudioContext)(); musicGain = audioCtx.createGain(); sfxGain = audioCtx.createGain(); musicGain.gain.value = 0.2; sfxGain.gain.value = 0.18; musicGain.connect(audioCtx.destination); sfxGain.connect(audioCtx.destination); startBGM(); } }
-function playSimple(type){ if(!soundOn || !audioCtx) return; const o = audioCtx.createOscillator(); const g = audioCtx.createGain(); if(type === 'click'){ o.type = 'sine'; o.frequency.setValueAtTime(600, audioCtx.currentTime); g.gain.setValueAtTime(0.12, audioCtx.currentTime); o.connect(g); g.connect(sfxGain); o.start(); o.stop(audioCtx.currentTime + 0.06); }
- if(type === 'clear'){ o.type = 'sawtooth'; o.frequency.setValueAtTime(250, audioCtx.currentTime); g.gain.setValueAtTime(0.18, audioCtx.currentTime); o.connect(g); g.connect(sfxGain); o.start(); o.frequency.exponentialRampToValueAtTime(800, audioCtx.currentTime + 0.18); g.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + 0.35); o.stop(audioCtx.currentTime + 0.4); }
- if(type === 'drop'){ o.type = 'triangle'; o.frequency.setValueAtTime(120, audioCtx.currentTime); g.gain.setValueAtTime(0.08, audioCtx.currentTime); o.connect(g); g.connect(sfxGain); o.start(); o.stop(audioCtx.currentTime + 0.05); } }
-let bgmTimer = null; function startBGM(){ if(!audioCtx || !soundOn) return; stopBGM(); const notes = [220,330,440,330]; const t0 = audioCtx.currentTime; notes.forEach((n,i)=>{ const o = audioCtx.createOscillator(); const g = audioCtx.createGain(); o.type = 'square'; o.frequency.setValueAtTime(n, t0 + i*0.15); g.gain.setValueAtTime(0.03, t0 + i*0.15); o.connect(g); g.connect(musicGain); o.start(t0 + i*0.15); o.stop(t0 + i*0.15 + 0.4); }); bgmTimer = setTimeout(()=>{ if(soundOn) startBGM(); }, 600); }
-function stopBGM(){ if(bgmTimer){ clearTimeout(bgmTimer); bgmTimer = null; } }
+// Pastikan audio berjalan dan gain node terhubung
+function ensureAudio(){ 
+    if(!audioCtx){ 
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)(); 
+        musicGain = audioCtx.createGain(); 
+        sfxGain = audioCtx.createGain(); 
+        musicGain.gain.value = 0.2; 
+        sfxGain.gain.value = 0.18; 
+        musicGain.connect(audioCtx.destination); 
+        sfxGain.connect(audioCtx.destination); 
+    } 
+    // Panggil startBGM() setelah memastikan konteks audio ada
+    if(soundOn) startBGM();
+}
+
+function playSimple(type){ 
+    if(!soundOn || !audioCtx) return; 
+    const o = audioCtx.createOscillator(); 
+    const g = audioCtx.createGain(); 
+    if(type === 'click'){ o.type = 'sine'; o.frequency.setValueAtTime(600, audioCtx.currentTime); g.gain.setValueAtTime(0.12, audioCtx.currentTime); o.connect(g); g.connect(sfxGain); o.start(); o.stop(audioCtx.currentTime + 0.06); }
+    if(type === 'clear'){ o.type = 'sawtooth'; o.frequency.setValueAtTime(250, audioCtx.currentTime); g.gain.setValueAtTime(0.18, audioCtx.currentTime); o.connect(g); g.connect(sfxGain); o.start(); o.frequency.exponentialRampToValueAtTime(800, audioCtx.currentTime + 0.18); g.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + 0.35); o.stop(audioCtx.currentTime + 0.4); }
+    if(type === 'drop'){ o.type = 'triangle'; o.frequency.setValueAtTime(120, audioCtx.currentTime); g.gain.setValueAtTime(0.08, audioCtx.currentTime); o.connect(g); g.connect(sfxGain); o.start(); o.stop(audioCtx.currentTime + 0.05); } 
+}
+
+let bgmTimer = null; 
+function startBGM(){ 
+    if(!audioCtx || !soundOn) return; 
+    stopBGM(); 
+    // Jika konteks audio ditangguhkan (misalnya setelah Game Over atau jika browser memerlukannya), lanjutkan.
+    if(audioCtx.state === 'suspended') {
+        audioCtx.resume();
+    }
+    const notes = [220,330,440,330]; 
+    const t0 = audioCtx.currentTime; 
+    notes.forEach((n,i)=>{ 
+        const o = audioCtx.createOscillator(); 
+        const g = audioCtx.createGain(); 
+        o.type = 'square'; 
+        o.frequency.setValueAtTime(n, t0 + i*0.15); 
+        g.gain.setValueAtTime(0.03, t0 + i*0.15); 
+        o.connect(g); 
+        g.connect(musicGain); 
+        o.start(t0 + i*0.15); 
+        o.stop(t0 + i*0.15 + 0.4); 
+    }); 
+    bgmTimer = setTimeout(()=>{ 
+        if(soundOn) startBGM(); 
+    }, 600); 
+}
+
+function stopBGM(){ 
+    if(bgmTimer){ 
+        clearTimeout(bgmTimer); 
+        bgmTimer = null; 
+    } 
+}
 
 // game functions
 function randBag(){ const bag = BAG.slice(); for(let i = bag.length-1; i>0; i--){ const j = Math.floor(Math.random()*(i+1)); [bag[i], bag[j]] = [bag[j], bag[i]]; } return bag; }
@@ -177,42 +553,333 @@ function nextFromBag(){ if(bag.length === 0) bag = randBag(); return bag.pop(); 
 function createPiece(key){ return { key, shape: SHAPES[key].map(r=>r.slice()), x: Math.floor(COLS/2 - Math.ceil(SHAPES[key][0].length/2)), y: 0, color: COLORS[key] }; }
 function rotateShape(shape){ const H = shape.length, W = shape[0].length; const out = Array.from({length:W}, ()=>Array(H).fill(0)); for(let r=0;r<H;r++) for(let c=0;c<W;c++) out[c][H-1-r] = shape[r][c]; return out; }
 function collide(board, shape, x, y){ for(let r=0;r<shape.length;r++) for(let c=0;c<shape[r].length;c++) if(shape[r][c]){ const bx = x+c, by = y+r; if(bx<0||bx>=COLS||by>=ROWS) return true; if(by>=0 && board[by][bx]) return true; } return false; }
-function placePiece(){ current.shape.forEach((row,r)=>row.forEach((v,c)=>{ if(v){ const bx = current.x + c, by = current.y + r; if(by>=0) board[by][bx] = current.color; } })); let linesCleared = 0; for(let r = ROWS-1; r>=0; r--){ if(board[r].every(cell=>cell)){ board.splice(r,1); board.unshift(new Array(COLS).fill(null)); linesCleared++; r++; } } if(linesCleared>0){ totalLines += linesCleared; score += scoreFor(linesCleared); playSimple('clear'); } level = Math.floor(totalLines/10) + 1; dropInterval = Math.max(100, 1000 - (level-1)*80); }
+function placePiece(){ 
+    let linesCleared = 0; 
+    current.shape.forEach((row,r)=>row.forEach((v,c)=>{ 
+        if(v){ 
+            const bx = current.x + c, by = current.y + r; 
+            if(by>=0) board[by][bx] = current.color; 
+        } 
+    })); 
+    
+    // Check and Clear Lines
+    for(let r = ROWS-1; r>=0; r--){ 
+        if(board[r].every(cell=>cell)){ 
+            board.splice(r,1); 
+            board.unshift(new Array(COLS).fill(null)); 
+            linesCleared++; 
+            r++; 
+        } 
+    } 
+    
+    if(linesCleared>0){ 
+        totalLines += linesCleared; 
+        score += scoreFor(linesCleared); 
+        playSimple('clear'); 
+        
+        // Multiplayer: Send lines cleared data
+        if (isMultiplayer) {
+            sendGameStatus(activeRoom.roomName);
+        }
+    } 
+    
+    level = Math.floor(totalLines/10) + 1; 
+    dropInterval = Math.max(100, 1000 - (level-1)*80); 
+}
 function scoreFor(lines){ const map = {1:100,2:300,3:500,4:800}; return map[lines] || 0; }
 function spawn(){ if(!nextPiece) nextPiece = createPiece(nextFromBag()); current = nextPiece; nextPiece = createPiece(nextFromBag()); if(collide(board, current.shape, current.x, current.y)){ gameOver(); } }
 function hardDrop(){ while(!collide(board, current.shape, current.x, current.y+1)){ current.y++; } placePiece(); playSimple('drop'); spawn(); }
-function gameOver(){ if(score > highScore){ highScore = score; try{ localStorage.setItem('tetris_highscore', String(highScore)); }catch(e){} } isRunning = false; isPaused = true; alert('Game Over\nScore: ' + score + '\nHigh Score: ' + highScore); showMainMenu(); }
 function move(dx){ if(!collide(board, current.shape, current.x + dx, current.y)){ current.x += dx; playSimple('click'); } }
 function softDrop(){ if(!collide(board, current.shape, current.x, current.y+1)){ current.y++; score++; } else { placePiece(); spawn(); } }
 function rotateCurrent(){ const r = rotateShape(current.shape); if(!collide(board, r, current.x, current.y)){ current.shape = r; playSimple('click'); return; } if(!collide(board, r, current.x-1, current.y)){ current.x--; current.shape = r; playSimple('click'); return; } if(!collide(board, r, current.x+1, current.y)){ current.x++; current.shape = r; playSimple('click'); return; } }
+
+function swapHold(){
+    if(!current) return;
+    
+    // If hold is empty, put current piece in hold and spawn new
+    if(!holdPiece){
+        holdPiece = createPiece(current.key);
+        spawn();
+    } else {
+        // Swap current and held piece
+        const temp = createPiece(current.key);
+        current = createPiece(holdPiece.key);
+        holdPiece = temp;
+        // Reset position after swap
+        current.x = Math.floor(COLS/2 - Math.ceil(current.shape[0].length/2));
+        current.y = 0;
+    }
+    playSimple('click');
+}
+
+// MODIFIED: Mengganti alert() dengan Game Over Menu
+// FINAL FIX — GameOver bekerja untuk Singleplayer & Multiplayer
+function gameOver(){ 
+    // Update High Score
+    if(score > highScore){ 
+        highScore = score; 
+        try{ 
+            localStorage.setItem('tetris_highscore', String(highScore)); 
+        } catch(e){} 
+    } 
+    
+    isRunning = false; 
+    isPaused = true; 
+    stopBGM(); 
+    
+    finalScoreEl.textContent = score.toLocaleString();
+    finalHighScoreEl.textContent = highScore.toLocaleString();
+
+    // === MULTIPLAYER HANDLING ===
+    if (isMultiplayer) {
+
+        // tandai status gameover ke room
+        updateRoomStatus(activeRoom.roomName, 'GAMEOVER', playerID, score);
+
+        // tampilkan menu "Menunggu lawan" seperti yang kamu inginkan
+        hideAllMenus();
+        waitingOpponentMenu.style.display = 'flex';
+        return;
+    }
+
+    // === SINGLEPLAYER HANDLING (PERBAIKAN) ===
+    showGameOverMenu();
+}
+
 
 // wrappers for mobile buttons
 function moveLeft(){ move(-1); }
 function moveRight(){ move(1); }
 function rotatePiece(){ rotateCurrent(); }
 
-function draw(){ ctx.clearRect(0,0,boardCanvas.width,boardCanvas.height); for(let r=0;r<ROWS;r++) for(let c=0;c<COLS;c++){ ctx.fillStyle = board[r][c] || '#071428'; ctx.fillRect(c*BLOCK, r*BLOCK, BLOCK-1, BLOCK-1); } if(current){ const ghostY = computeGhostY(); drawShapeAt(current.shape, current.x, ghostY, 'rgba(255,255,255,0.08)'); drawShapeAt(current.shape, current.x, current.y, current.color); } }
-function drawShapeAt(shape, x, y, color){ for(let r=0;r<shape.length;r++) for(let c=0;c<shape[r].length;c++) if(shape[r][c]){ ctx.fillStyle = color; ctx.fillRect((x+c)*BLOCK, (y+r)*BLOCK, BLOCK-1, BLOCK-1); } }
-function computeGhostY(){ if(!current) return 0; let y = current.y; while(!collide(board, current.shape, current.x, y+1)) y++; return y; }
-function drawNext(){ nextCanvas.clearRect(0,0,nextCanvas.canvas.width,nextCanvas.canvas.height); if(!nextPiece) return; const s = nextPiece.shape; const size = BLOCK; const offX = (nextCanvas.canvas.width - s[0].length*size)/2; const offY = (nextCanvas.canvas.height - s.length*size)/2; for(let r=0;r<s.length;r++) for(let c=0;c<s[r].length;c++) if(s[r][c]){ nextCanvas.fillStyle = nextPiece.color; nextCanvas.fillRect(offX + c*size, offY + r*size, size-2, size-2); } }
+function drawGrid(){
+    ctx.strokeStyle = getComputedStyle(document.documentElement).getPropertyValue('--grid-line');
+    ctx.lineWidth = 1;
+    for(let c = 1; c < COLS; c++){
+        ctx.beginPath();
+        ctx.moveTo(c * BLOCK, 0);
+        ctx.lineTo(c * BLOCK, boardCanvas.height);
+        ctx.stroke();
+    }
+    for(let r = 1; r < ROWS; r++){
+        ctx.beginPath();
+        ctx.moveTo(0, r * BLOCK);
+        ctx.lineTo(boardCanvas.width, r * BLOCK);
+        ctx.stroke();
+    }
+}
 
-function update(time=0){ if(!lastTime) lastTime = time; const delta = time - lastTime; lastTime = time; if(!isPaused && isRunning && current){ dropCounter += delta; if(dropCounter > dropInterval){ dropCounter = 0; if(!collide(board, current.shape, current.x, current.y+1)){ current.y++; } else { placePiece(); spawn(); } } } draw(); drawNext(); scoreEl.textContent = score; levelEl.textContent = level; linesEl.textContent = totalLines; updateHighScoreUI(); if(isRunning) requestAnimationFrame(update); }
+function draw(){ 
+    // ... (Fungsi draw tetap sama) ...
+    ctx.clearRect(0,0,boardCanvas.width,boardCanvas.height); 
+    
+    drawGrid();
+
+    for(let r=0;r<ROWS;r++) for(let c=0;c<COLS;c++){ 
+        if(board[r][c]){
+            ctx.fillStyle = board[r][c]; 
+            ctx.fillRect(c*BLOCK, r*BLOCK, BLOCK, BLOCK); 
+            ctx.fillStyle = 'rgba(255,255,255,0.3)';
+            ctx.fillRect(c*BLOCK + 5, r*BLOCK + 5, BLOCK - 10, BLOCK - 10);
+        }
+    } 
+    
+    if(current){ 
+        const ghostY = computeGhostY(); 
+        drawShapeAt(current.shape, current.x, ghostY, 'rgba(255,255,255,0.08)'); 
+        drawShapeAt(current.shape, current.x, current.y, current.color, true); 
+    } 
+}
+
+function drawShapeAt(shape, x, y, color, isCurrent=false){ 
+    for(let r=0;r<shape.length;r++) for(let c=0;c<shape[r].length;c++) if(shape[r][c]){ 
+        ctx.fillStyle = color; 
+        ctx.fillRect((x+c)*BLOCK, (y+r)*BLOCK, BLOCK, BLOCK); 
+        
+        if(isCurrent){
+            ctx.fillStyle = 'rgba(255,255,255,0.4)';
+            ctx.fillRect((x+c)*BLOCK + 5, (y+r)*BLOCK + 5, BLOCK - 10, BLOCK - 10);
+        }
+    } 
+}
+
+function computeGhostY(){ if(!current) return 0; let y = current.y; while(!collide(board, current.shape, current.x, y+1)) y++; return y; }
+
+function drawNext(){ 
+    // ... (Fungsi drawNext tetap sama) ...
+    nextCanvasCtx.clearRect(0,0,nextCanvasCtx.canvas.width,nextCanvasCtx.canvas.height); 
+    if(!nextPiece) return; 
+    const s = nextPiece.shape; 
+    const size = 15; 
+    const offX = (nextCanvasCtx.canvas.width - s[0].length*size)/2; 
+    const offY = (nextCanvasCtx.canvas.height - s.length*size)/2; 
+    
+    for(let r=0;r<s.length;r++) for(let c=0;c<s[r].length;c++) if(s[r][c]){ 
+        nextCanvasCtx.fillStyle = nextPiece.color; 
+        nextCanvasCtx.fillRect(offX + c*size, offY + r*size, size-1, size-1); 
+        nextCanvasCtx.fillStyle = 'rgba(255,255,255,0.3)'; 
+        nextCanvasCtx.fillRect(offX + c*size + 3, offY + r*size + 3, size - 7, size - 7);
+    } 
+}
+
+function drawHold(){ 
+    // ... (Fungsi drawHold tetap sama) ...
+    holdCanvasCtx.clearRect(0,0,holdCanvasCtx.canvas.width,holdCanvasCtx.canvas.height); 
+    if(!holdPiece) return; 
+    const s = holdPiece.shape; 
+    const size = 15; 
+    const offX = (holdCanvasCtx.canvas.width - s[0].length*size)/2; 
+    const offY = (holdCanvasCtx.canvas.height - s.length*size)/2; 
+    
+    for(let r=0;r<s.length;r++) for(let c=0;c<s[r].length;c++) if(s[r][c]){ 
+        holdCanvasCtx.fillStyle = holdPiece.color; 
+        holdCanvasCtx.fillRect(offX + c*size, offY + r*size, size-1, size-1); 
+        holdCanvasCtx.fillStyle = 'rgba(255,255,255,0.3)'; 
+        holdCanvasCtx.fillRect(offX + c*size + 3, offY + r*size + 3, size - 7, size - 7);
+    } 
+}
+
+function updateTime(){
+    if(!isRunning || isPaused) return;
+    const elapsed = Date.now() - gameStartTime;
+    const totalSeconds = Math.floor(elapsed / 1000);
+    const minutes = Math.floor(totalSeconds / 60);
+    const seconds = totalSeconds % 60;
+    const ms = Math.floor((elapsed % 1000) / 10);
+
+    const format = (n) => String(n).padStart(2, '0');
+    timeEl.textContent = `${format(minutes)}:${format(seconds)}:${format(ms)}`;
+}
+
+function update(time=0){ 
+    if(!lastTime) lastTime = time; 
+    const delta = time - lastTime; 
+    lastTime = time; 
+    
+    if(!isPaused && isRunning && current){ 
+        dropCounter += delta; 
+        if(dropCounter > dropInterval){ 
+            dropCounter = 0; 
+            if(!collide(board, current.shape, current.x, current.y+1)){ 
+                current.y++; 
+            } else { 
+                placePiece(); 
+                spawn(); 
+            } 
+        } 
+    } 
+    
+    draw(); 
+    drawNext(); 
+    drawHold(); 
+    updateTime(); 
+    
+    scoreEl.textContent = score.toLocaleString();
+    levelEl.textContent = level; 
+    linesEl.textContent = totalLines; 
+    updateHighScoreUI(); 
+
+    // Update UI Status Multiplayer
+    if (isMultiplayer) {
+        multiplayerStatusEl.textContent = isHost ? "Mode: P1 (HOST)" : "Mode: P2 (JOINED)";
+        // Sinkronisasi status game ke localStorage setiap frame jika dalam MP
+        sendGameStatus(activeRoom.roomName);
+    } else {
+        multiplayerStatusEl.textContent = "Mode: Singleplayer";
+        rivalScoreContainer.style.display = 'none';
+    }
+
+    if(isRunning) requestAnimationFrame(update); 
+}
 
 // input
-window.addEventListener('keydown', function(e){ if(e.repeat) return; if(e.key === 'ArrowLeft') move(-1); else if(e.key === 'ArrowRight') move(1); else if(e.key === 'ArrowUp') rotateCurrent(); else if(e.key === 'ArrowDown') softDrop(); else if(e.code === 'Space') hardDrop(); else if(e.key.toLowerCase() === 'p') togglePause(); });
+window.addEventListener('keydown', function(e){ 
+    if(e.repeat || isPaused || !isRunning) return; 
+    
+    const key = e.key.toLowerCase();
+    
+    // Kontrol WASD dan Arrow Keys
+    if (key === 'arrowleft' || key === 'a') {
+        move(-1);
+    } else if (key === 'arrowright' || key === 'd') {
+        move(1);
+    } else if (key === 'arrowup' || key === 'w') {
+        rotateCurrent();
+    } else if (key === 'arrowdown' || key === 's') {
+        softDrop();
+    } 
+    // Kontrol Lain
+    else if(e.code === 'Space') {
+        hardDrop();
+    } else if(key === 'c') {
+        swapHold();
+    } else if(key === 'p') {
+        togglePause();
+    }
+});
 
 // touch simple swipe/tap
-let touchStartX = null; boardCanvas.addEventListener('touchstart', function(e){ const t = e.touches[0]; touchStartX = t.clientX; }, {passive:true}); boardCanvas.addEventListener('touchend', function(e){ const t = e.changedTouches[0]; const dx = t.clientX - touchStartX; if(Math.abs(dx) > 30) move(dx>0?1:-1); else rotateCurrent(); }, {passive:true});
+let touchStartX = null; 
+boardCanvas.addEventListener('touchstart', function(e){ 
+    if(isPaused || !isRunning) return;
+    const t = e.touches[0]; 
+    touchStartX = t.clientX; 
+}, {passive:true}); 
+
+boardCanvas.addEventListener('touchend', function(e){ 
+    if(isPaused || !isRunning) return;
+    const t = e.changedTouches[0]; 
+    const dx = t.clientX - touchStartX; 
+    if(Math.abs(dx) > 30) move(dx>0?1:-1); 
+    else rotateCurrent(); 
+}, {passive:true});
 
 // UI wiring
-startBtn.addEventListener('click', function(){ startGame(); });
+startBtn.addEventListener('click', function(){ startGame(false); }); // Singleplayer
 openSettingsBtn.addEventListener('click', function(){ showSettings(false); });
 closeSettingsBtn.addEventListener('click', function(){ closeSettings(); });
 settingsFromPauseBtn.addEventListener('click', function(){ showSettings(true); });
 resumeBtn.addEventListener('click', function(){ resumeGame(); });
-restartBtn.addEventListener('click', function(){ restartGame(); });
+restartBtn.addEventListener('click', function(){ restartGame(false); });
 exitToMenuBtn.addEventListener('click', function(){ exitToMainMenu(); });
-btnRestart2.addEventListener('click', function(){ restartGame(); });
+resultBackBtn.addEventListener('click', function() {
+    // Bersihkan room
+    localStorage.removeItem(localStorageKey);
+
+    // Reset status multiplayer
+    isMultiplayer = false;
+    isHost = false;
+    activeRoom = null;
+    opponentID = null;
+
+    hideAllMenus();
+    mainMenu.style.display = 'flex';
+
+    stopBGM(); // optional
+    window.location.reload(); // reset semua state
+});
+
+
+// NEW BUTTON HANDLERS
+restartFromGameOverBtn.addEventListener('click', function(){ restartGame(false); });
+exitFromGameOverBtn.addEventListener('click', function(){ exitToMainMenu(); });
+
+// FIX: TAMBAHKAN KEMBALI EVENT LISTENERS UNTUK TOMBOL MENU UTAMA
+singleplayerBtn.addEventListener('click', function(){ showSingleplayerMenu(); });
+multiplayerBtn.addEventListener('click', function(){ showMultiplayerMenu(); });
+backFromSPBtn.addEventListener('click', function(){ showMainMenu(); });
+backFromMPBtn.addEventListener('click', function(){ showMainMenu(); });
+openHostMenuBtn.addEventListener('click', showHostGameMenu);
+openJoinMenuBtn.addEventListener('click', showJoinGameList);
+backFromHostBtn.addEventListener('click', showMultiplayerMenu);
+backFromJoinBtn.addEventListener('click', showMultiplayerMenu);
+createRoomBtn.addEventListener('click', createNewRoom);
+// END FIX
+
+startGameMultiplayerBtn.addEventListener('click', function(){ startGameMultiplayer(activeRoom.roomName); });
+closeRoomBtn.addEventListener('click', closeRoom);
+
+btnRestart2.addEventListener('click', function(){ restartGame(isMultiplayer); });
 btnToggleSound2.addEventListener('click', function(){ soundOn = !soundOn; if(!soundOn) stopBGM(); else { ensureAudio(); startBGM(); } btnToggleSound2.textContent = soundOn? 'Toggle Sound' : 'Sound Off'; });
 btnOpenPause.addEventListener('click', function(){ togglePause(); });
 
@@ -224,22 +891,462 @@ musicVolumeInput.addEventListener('input', function(e){ if(musicGain) musicGain.
 sfxVolumeInput.addEventListener('input', function(e){ if(sfxGain) sfxGain.gain.value = parseFloat(e.target.value); });
 themeSelect.addEventListener('change', function(e){ applyTheme(e.target.value); });
 
-function showMainMenu(){ mainMenu.style.display='flex'; settingsMenu.style.display='none'; pauseMenu.style.display='none'; isRunning=false; isPaused=true; }
-function startGame(){ mainMenu.style.display='none'; settingsMenu.style.display='none'; pauseMenu.style.display='none'; resetGame(); isPaused=false; isRunning=true; ensureAudio(); lastTime=0; requestAnimationFrame(update); }
-function showSettings(fromPause){ settingsMenu.style.display='flex'; if(fromPause){ pauseMenu.style.display='none'; } else { mainMenu.style.display='none'; } }
-function closeSettings(){ settingsMenu.style.display='none'; if(isRunning && isPaused) pauseMenu.style.display='flex'; else if(!isRunning) mainMenu.style.display='flex'; }
-function togglePause(){ if(!isRunning) return; if(isPaused) resumeGame(); else pauseGame(); }
-function pauseGame(){ isPaused=true; pauseMenu.style.display='flex'; }
-function resumeGame(){ isPaused=false; pauseMenu.style.display='none'; }
-function restartGame(){ resetGame(); pauseMenu.style.display='none'; }
-function exitToMainMenu(){ showMainMenu(); }
+function hideAllMenus(){ 
+    mainMenu.style.display='none'; 
+    settingsMenu.style.display='none'; 
+    pauseMenu.style.display='none'; 
+    gameOverMenu.style.display='none'; 
+    singleplayerMenu.style.display='none'; 
+    multiplayerMenu.style.display='none'; 
+    hostGameMenu.style.display='none'; 
+    joinGameList.style.display='none'; 
+    hostWaitingRoom.style.display='none'; 
+}
+// NEW MENU FUNCTIONS
+function showMainMenu(){ 
+    hideAllMenus(); 
+    mainMenu.style.display='flex'; 
+    isRunning=false; 
+    isPaused=true; 
+    isMultiplayer = false;
+    // Clear room data if we exit to main menu
+    localStorage.removeItem(localStorageKey);
+    activeRoom = null;
+    opponentID = null;
+    stopBGM(); 
+}
 
-function resetGame(){ board = makeEmptyBoard(); score=0; level=1; totalLines=0; bag=randBag(); nextPiece=createPiece(nextFromBag()); spawn(); dropCounter=0; updateHighScoreUI(); }
+function startGame(isMP){ 
+    hideAllMenus();
+    resetGame(); 
+    isPaused=false; 
+    isRunning=true; 
+    isMultiplayer = isMP;
+    gameStartTime = Date.now();
+    ensureAudio(); 
+    lastTime=0; 
+    
+    // Set UI for Multiplayer mode
+    if (isMultiplayer) {
+        rivalScoreContainer.style.display = 'block';
+    } else {
+        rivalScoreContainer.style.display = 'none';
+    }
+
+    requestAnimationFrame(update); 
+}
+
+// *** MULTIPLAYER LOGIC ***
+
+// 1. Host creates the room
+function createNewRoom(){
+    const roomName = roomNameInput.value.trim();
+    if (roomName.length === 0) {
+        alert("Nama Room tidak boleh kosong!");
+        return;
+    }
+    
+    // Logika pembuatan room di localStorage
+    activeRoom = {
+        roomName: roomName,
+        hostId: playerID,
+        players: 1,
+        status: "WAITING",
+        p1: { id: playerID, score: 0, lines: 0, status: 'WAITING' },
+        p2: null,
+    };
+    // Simpan ke localStorage
+    localStorage.setItem(localStorageKey, JSON.stringify(activeRoom));
+
+    isHost = true;
+    
+    // Langsung tampilkan Waiting Room Host
+    showLobbyScreen(); 
+    alert(`Room "${roomName}" berhasil dibuat! ID Anda: ${playerID}. Tunggu Player 2.`);
+}
+
+// 2. Player 2 joins the room
+function joinRoom(roomName, hostId){
+    const roomData = JSON.parse(localStorage.getItem(localStorageKey));
+    if (!roomData || roomData.status !== 'WAITING') {
+        alert("Room tidak ditemukan atau sudah penuh/dimulai.");
+        return;
+    }
+
+    // Update room dengan data Player 2
+    opponentID = hostId;
+    roomData.players = 2;
+    roomData.p2 = { id: playerID, score: 0, lines: 0, status: 'READY' };
+    roomData.status = 'READY_TO_START';
+    
+    localStorage.setItem(localStorageKey, JSON.stringify(roomData));
+    activeRoom = roomData;
+    isHost = false; // Kita adalah Joiner
+
+    // PERBAIKAN KRUSIAL: Tampilkan Lobby Screen, JANGAN kembali ke Main Menu.
+    showLobbyScreen();
+    alert(`Berhasil bergabung ke room "${roomName}"! Menunggu Host memulai.`);
+}
+
+// 3. Host starts the game
+function startGameMultiplayer(roomName) {
+    if (activeRoom.players === 2) {
+        activeRoom.status = 'IN_GAME';
+        activeRoom.gameoverId = undefined; // Reset gameover status
+        localStorage.setItem(localStorageKey, JSON.stringify(activeRoom));
+        alert("Game Multiplayer DIMULAI!");
+        
+        startGame(true); // Mulai game di sisi Host (P1)
+    } else {
+        alert("Tunggu Player 2 join terlebih dahulu.");
+    }
+}
+
+// 4. Close Room
+function closeRoom(){
+    activeRoom = null;
+    isHost = false;
+    localStorage.removeItem(localStorageKey); // Hapus room dari localStorage
+    alert("Room ditutup.");
+    showMultiplayerMenu();
+}
+
+// 5. Update UI Join Game List
+function updateRoomListUI(){
+    roomListContainer.innerHTML = '';
+    const roomData = JSON.parse(localStorage.getItem(localStorageKey));
+    
+    if (roomData && (roomData.status === "WAITING" || roomData.status === "READY_TO_START")) { // Tampilkan jika menunggu/siap
+        noRoomMessage.style.display = 'none';
+        
+        const roomDiv = document.createElement('div');
+        roomDiv.style.cssText = 'display:flex; justify-content:space-between; align-items:center; padding: 8px; margin-bottom: 5px; background: #1a2c38; border-radius: 4px;';
+        
+        const isJoinable = roomData.status === "WAITING";
+        const buttonText = isJoinable ? "Join" : "Lobby Penuh";
+        const buttonDisabled = !isJoinable;
+
+        roomDiv.innerHTML = `
+            <span style="color:var(--accent);">${roomData.roomName} (${roomData.players}/2)</span>
+            <button class="btn join-room-btn" 
+                    data-host-id="${roomData.hostId}" 
+                    data-room-name="${roomData.roomName}" 
+                    style="padding: 4px 8px; font-size: 12px; ${buttonDisabled ? 'background:#888; cursor:default;' : ''}" 
+                    ${buttonDisabled ? 'disabled' : ''}>
+                ${buttonText}
+            </button>
+        `;
+        roomListContainer.appendChild(roomDiv);
+        
+        // Tambahkan event listener untuk tombol Join
+        if(isJoinable) {
+            roomDiv.querySelector('.join-room-btn').addEventListener('click', function(e) {
+                const btn = e.target;
+                joinRoom(btn.dataset.roomName, btn.dataset.hostId);
+            });
+        }
+        
+    } else {
+        roomListContainer.appendChild(noRoomMessage);
+        noRoomMessage.style.display = 'block';
+    }
+}
+
+// 6. Lobby Screen (Digunakan Host dan Joiner)
+function showLobbyScreen(){
+    hideAllMenus();
+    const roomData = JSON.parse(localStorage.getItem(localStorageKey));
+    if (!roomData) return;
+
+    activeRoom = roomData;
+    lobbyRoomName.textContent = activeRoom.roomName;
+
+    const isCurrentHost = (activeRoom.hostId === playerID);
+    const p2Joined = (activeRoom.p2 !== null);
+
+    // --- TAMPILKAN Kedua Player Selalu (Host & Joiner) ---
+    player2Box.style.display = 'flex';
+    player2Name.style.color = '#fff';
+    player2Box.style.border = '1px dashed var(--muted)';
+
+    if (p2Joined) {
+        player2Name.textContent = "Player 2 (Ready)";
+        player2Name.style.color = '#00ff00';
+        player2Box.style.border = '1px solid #00ff00';
+    } else {
+        player2Name.textContent = "*Menunggu...*";
+    }
+
+    // --- HOST ---
+    if (isCurrentHost) {
+        startGameMultiplayerBtn.style.display = 'block';
+        closeRoomBtn.style.display = 'block';
+
+        if (p2Joined) {
+            startGameMultiplayerBtn.disabled = false;
+            startGameMultiplayerBtn.style.background = 'var(--accent)';
+        } else {
+            startGameMultiplayerBtn.disabled = true;
+            startGameMultiplayerBtn.style.background = '#444';
+        }
+    }
+
+    // --- JOINER ---
+    else {
+        startGameMultiplayerBtn.style.display = 'none';  // Joiner tidak punya tombol start
+        closeRoomBtn.style.display = 'block';
+    }
+
+    hostWaitingRoom.style.display = 'flex';
+}
+
+function sendPlayerFinished() {
+    if (!activeRoom) return;
+
+    const scoreData = {
+        id: playerID,
+        score: score,
+        finished: true
+    };
+
+    // update status player
+    if (isHost) {
+        activeRoom.p1.score = score;
+        activeRoom.p1.finished = true;
+    } else {
+        activeRoom.p2.score = score;
+        activeRoom.p2.finished = true;
+    }
+
+    activeRoom.status = "FINISHING";
+
+    localStorage.setItem(localStorageKey, JSON.stringify(activeRoom));
+}
+
+
+// 7. Communication Channel (localStorage Listener)
+window.addEventListener('storage', function(e) {
+    if (e.key !== localStorageKey || !e.newValue) return;
+
+    const roomUpdate = JSON.parse(e.newValue);
+
+    // Jika bukan dalam room yang sama → abaikan
+    if (!activeRoom || activeRoom.roomName !== roomUpdate.roomName) return;
+
+    activeRoom = roomUpdate;
+
+    // === LOBBY UPDATE ===
+    if (activeRoom.status === 'WAITING' || activeRoom.status === 'READY_TO_START') {
+        showLobbyScreen();
+        return;
+    }
+
+    // === GAME START ===
+    if (activeRoom.status === 'IN_GAME' &&
+        !activeRoom.p1.finished &&
+        !(activeRoom.p2 && activeRoom.p2.finished)) {
+
+        if (!isRunning) {
+            alert("Game dimulai oleh Host!");
+            startGame(true);
+        }
+
+        if (isMultiplayer) {
+            const rivalData = isHost ? roomUpdate.p2 : roomUpdate.p1;
+            if (rivalData) {
+                rivalScoreEl.textContent = rivalData.score.toLocaleString();
+            }
+        }
+        return;
+    }
+
+    // === SALAH SATU GAMEOVER ===
+    if (activeRoom.status === 'GAMEOVER') {
+
+        if (activeRoom.p1.status === 'GAMEOVER' &&
+            activeRoom.p2.status === 'GAMEOVER') {
+
+            // Kedua pemain gameover → langsung buka hasil
+            showMultiplayerResult(activeRoom);
+            return;
+        }
+
+        // Lawan gameover lebih dulu, tapi kita masih main
+        if (activeRoom.gameoverId !== playerID) {
+            // tidak melakukan apa-apa
+        }
+        return;
+    }
+
+    // === MODE FINISHING (KEDUA PLAYER MENU HASIL) ===
+    if (activeRoom.status === 'FINISHING') {
+
+        // Jika sedang melihat resultMenu → update score otomatis
+        if (resultMenu.style.display === 'flex') {
+            const p1 = activeRoom.p1.score ?? 0;
+            const p2 = activeRoom.p2?.score ?? 0;
+
+            resultP1.textContent = p1.toLocaleString();
+            resultP2.textContent = p2.toLocaleString();
+
+            // tampilkan pemenang bila kedua finished
+            if (activeRoom.p1.finished && activeRoom.p2?.finished) {
+                if (p1 > p2) winnerText.textContent = "Pemenang: PLAYER 1 (HOST)";
+                else if (p2 > p1) winnerText.textContent = "Pemenang: PLAYER 2 (JOINER)";
+                else winnerText.textContent = "DRAW!";
+            }
+        }
+
+        // Jika kedua player finished → buka menu hasil jika belum terbuka
+        if (activeRoom.p1.finished && activeRoom.p2?.finished) {
+            if (resultMenu.style.display !== 'flex') {
+                showMultiplayerResult(activeRoom);
+            }
+        }
+    }
+});
+
+
+// 8. Send Status
+function sendGameStatus(roomName) {
+    if (!activeRoom || activeRoom.roomName !== roomName || !isMultiplayer) return;
+
+    const currentStatus = { score: score, lines: totalLines, status: 'IN_GAME' };
+
+    if (isHost) {
+        activeRoom.p1 = Object.assign(activeRoom.p1, currentStatus);
+    } else {
+        activeRoom.p2 = Object.assign(activeRoom.p2, currentStatus);
+    }
+    
+    // Kirim update ke localStorage, memicu event 'storage' di tab lawan
+    localStorage.setItem(localStorageKey, JSON.stringify(activeRoom));
+}
+
+function updateRoomStatus(roomName, status, gameoverId = null, gameoverScore = 0) {
+    if (!activeRoom || activeRoom.roomName !== roomName) return;
+
+    activeRoom.status = status;
+
+    if (status === 'GAMEOVER') {
+        if (activeRoom.p1.id === gameoverId) {
+            activeRoom.p1.status = 'GAMEOVER';
+            activeRoom.p1.score = gameoverScore;
+        }
+        if (activeRoom.p2 && activeRoom.p2.id === gameoverId) {
+            activeRoom.p2.status = 'GAMEOVER';
+            activeRoom.p2.score = gameoverScore;
+        }
+    }
+    localStorage.setItem(localStorageKey, JSON.stringify(activeRoom));
+}
+
+function showMultiplayerResult(room) {
+    hideAllMenus();
+
+    const p1 = room.p1.score ?? 0;
+    const p2 = room.p2 ? room.p2.score : 0;
+
+    resultP1.textContent = p1.toLocaleString();
+    resultP2.textContent = p2.toLocaleString();
+
+    // Tampilkan teks pemenang hanya jika keduanya sudah selesai
+    if (room.p1.finished && room.p2 && room.p2.finished) {
+        if (p1 > p2) winnerText.textContent = "Pemenang: PLAYER 1 (HOST)";
+        else if (p2 > p1) winnerText.textContent = "Pemenang: PLAYER 2 (JOINER)";
+        else winnerText.textContent = "DRAW!";
+    } else {
+        winnerText.textContent = "Menunggu lawan menyelesaikan permainan...";
+    }
+
+    resultMenu.style.display = 'flex';
+}
+
+
+// --- Menu Functions ---
+function showSingleplayerMenu(){
+    hideAllMenus();
+    singleplayerMenu.style.display='flex';
+}
+function showMultiplayerMenu(){
+    hideAllMenus();
+    multiplayerMenu.style.display='flex';
+}
+function showHostGameMenu(){
+    hideAllMenus();
+    hostGameMenu.style.display='flex';
+}
+function showJoinGameList(){
+    hideAllMenus();
+    updateRoomListUI(); 
+    joinGameList.style.display='flex';
+}
+// showHostWaitingRoom diubah menjadi showLobbyScreen di atas.
+function showSettings(fromPause){ 
+    settingsMenu.style.display='flex'; 
+    if(fromPause){ pauseMenu.style.display='none'; } else { mainMenu.style.display='none'; } 
+}
+function closeSettings(){ 
+    settingsMenu.style.display='none'; 
+    if(isRunning && isPaused) pauseMenu.style.display='flex'; 
+    else if(!isRunning) mainMenu.style.display='flex'; 
+}
+function togglePause(){ 
+    if(!isRunning) return; 
+    if(isPaused) resumeGame(); 
+    else pauseGame(); 
+}
+function pauseGame(){ 
+    isPaused=true; 
+    pauseMenu.style.display='flex'; 
+    stopBGM(); 
+}
+function resumeGame(){ 
+    isPaused=false; 
+    pauseMenu.style.display='none'; 
+    if(soundOn) startBGM(); 
+}
+function restartGame(isMP){ 
+    hideAllMenus(); 
+    resetGame();
+    isPaused = false;
+    isRunning = true;
+    isMultiplayer = isMP;
+    gameStartTime = Date.now();
+    ensureAudio(); 
+    lastTime = 0;
+    requestAnimationFrame(update);
+}
+function exitToMainMenu(){ showMainMenu(); }
+function showGameOverMenu(){
+    hideAllMenus();
+    gameOverMenu.style.display='flex';
+}
+
+
+function resetGame(){ 
+    board = makeEmptyBoard(); 
+    score=0; 
+    level=1; 
+    totalLines=0; 
+    bag=randBag(); 
+    nextPiece=createPiece(nextFromBag()); 
+    holdPiece=null; 
+    spawn(); 
+    dropCounter=0; 
+    updateHighScoreUI(); 
+    gameStartTime = Date.now();
+    timeEl.textContent = '00:00:00'; // Reset Time display
+}
 
 // theme helper
-function applyTheme(name){ if(name==='neon') document.documentElement.style.setProperty('--accent','#39ff14'); else if(name==='pastel') document.documentElement.style.setProperty('--accent','#a78bfa'); else document.documentElement.style.setProperty('--accent','#22d3ee'); }
+function applyTheme(name){ 
+    if(name==='neon') document.documentElement.style.setProperty('--accent','#39ff14'); 
+    else if(name==='pastel') document.documentElement.style.setProperty('--accent','#a78bfa'); 
+    else document.documentElement.style.setProperty('--accent','#c0f0f0'); 
+}
 
-function updateHighScoreUI(){ const el = document.getElementById('highscore'); if(el) el.textContent = highScore; }
+function updateHighScoreUI(){ const el = document.getElementById('highscore'); if(el) el.textContent = highScore.toLocaleString(); }
 
 // start with main menu visible
 showMainMenu();
@@ -248,10 +1355,10 @@ window.addEventListener('click', function(){ if(!audioCtx && soundOn) ensureAudi
 
 </script>
 
-<!-- Mobile controls -->
-<div id="mobile-controls">
+<div id="mobile-controls" style="display: none;">
   <button onclick="moveLeft()">⬅️</button>
   <button onclick="rotatePiece()">🔄</button>
+  <button onclick="swapHold()">©️</button>
   <button onclick="moveRight()">➡️</button>
   <button onclick="softDrop()">⬇️</button>
   <button onclick="hardDrop()">⏬</button>

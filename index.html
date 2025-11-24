@@ -951,17 +951,30 @@ function handleGameOver() {
     isPaused = true;
     stopBGM();
 
+    // Simpan High Score
+    if(score > highScore){
+        highScore = score;
+        localStorage.setItem('tetris_highscore', highScore);
+    }
+
+    // Update UI Game Over
+    finalScoreEl.innerText = score.toLocaleString();
+    finalHighScoreEl.innerText = highScore.toLocaleString();
+
+    updateScoreUI();
+
     if (!isMultiplayer) {
-        showMenu('gameOverMenu');
+        showMenu('gameOverMenu'); // Pastikan singleplayer game over muncul
         return;
     }
 
+    // Multiplayer flow
     sendData({ type: 'GAME_OVER', score });
-
     hideAllMenus();
     myGameOverOverlay.style.display = 'flex';
-    btnCheckResult.style.display = 'block';  // SELALU tampil
+    btnCheckResult.style.display = 'block';
 }
+
 
 
 
@@ -987,7 +1000,13 @@ function showMultiplayerResults(){
 }
 
 // UI & draw
-function updateScoreUI(){ scoreEl.innerText = score.toLocaleString(); levelEl.innerText = level; linesEl.innerText = totalLines; document.getElementById('highscore').innerText = highScore.toLocaleString(); }
+function updateScoreUI(){
+    scoreEl.innerText = score.toLocaleString();
+    levelEl.innerText = level;
+    linesEl.innerText = totalLines;
+    document.getElementById('highscore').innerText = highScore.toLocaleString();
+}
+
 function updateTime(){ const el = Date.now()-gameStartTime; const m=Math.floor(el/60000).toString().padStart(2,'0'); const s=Math.floor((el%60000)/1000).toString().padStart(2,'0'); timeEl.innerText = `${m}:${s}`; }
 
 function computeGhostY(){

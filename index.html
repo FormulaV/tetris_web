@@ -313,10 +313,14 @@ const p1FinalScore = document.getElementById('p1FinalScore');
 const p2FinalScore = document.getElementById('p2FinalScore');
 const waitingMyScore = document.getElementById('waitingMyScore');
     // 🔥 Tap/Touch on board = HOLD piece
-const tetrisCanvas = document.getElementById("tetris");
-tetrisCanvas.addEventListener("touchstart", () => {
-    if (isRunning) holdPiece();
-});
+// 🔥 Tap/Touch on board = HOLD piece
+const tetrisCanvas = document.getElementById("board");
+if (tetrisCanvas) {
+    tetrisCanvas.addEventListener("touchstart", () => {
+        if (isRunning) swapHold();
+    });
+}
+
 
 
 // Gameplay constants & state

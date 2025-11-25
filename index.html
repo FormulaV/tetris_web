@@ -321,29 +321,6 @@ if (tetrisCanvas) {
     });
 }
 
-const iceConfig = {
-    iceServers: [
-        { urls: "stun:stun.l.google.com:19302" },
-        { urls: "stun:global.stun.twilio.com:3478?transport=udp" },
-        {
-            urls: "turn:openrelay.metered.ca:80",
-            username: "openrelayproject",
-            credential: "openrelayproject"
-        },
-        {
-            urls: "turn:openrelay.metered.ca:443",
-            username: "openrelayproject",
-            credential: "openrelayproject"
-        },
-        {
-            urls: "turn:openrelay.metered.ca:443?transport=tcp",
-            username: "openrelayproject",
-            credential: "openrelayproject"
-        }
-    ]
-};
-
-
 
 
 // Gameplay constants & state
@@ -531,20 +508,33 @@ function hostGame() {
     hostStatusText.innerText = "Membuat room...";
     hostStatusText.style.display = "block";
 
-    peer = new Peer(id, { config: iceConfig });
+    peer = new Peer(id, {
+        config: {
+            iceServers: [
+                { urls: "stun:stun.l.google.com:19302" },
+                {
+                    urls: "turn:relay1.expressturn.com:3478",
+                    username: "ef001c6f937a4500bee40317e2c94a65",
+                    credential: "0e537e3f4e697b52a54b8e8bc7696ff0"
+                }
+            ]
+        }
+    });
 
     peer.on("open", () => {
-        console.log("Host ready:", peer.id);
-    });
-    
-    peer.on("connection", (c) => {
-        conn = c;
-    
-        setupConnection();
-    });
-    
-    peer.on("error", e => console.error("PEER ERROR:", e));
+        hostStatusText.style.display = "none";
+        isHost = true;
+        isMultiplayer = true;
 
+        enterLobby(room); // ⬅ Joiner akan masuk lobby yang sama
+    });
+
+    peer.on("connection", c => {
+        if (conn) return;
+        conn = c;
+        setupConnection();
+        updateLobbyUI(true);
+    });
 }
 
 
@@ -556,21 +546,7 @@ function joinGame() {
     joinStatusText.innerText = "Menghubungkan ke host...";
     joinStatusText.style.display = "block";
 
-    peer = new Peer({ config: iceConfig });
-
-    peer.on("open", () => {
-        conn = peer.connect(targetId);
-    
-        conn.on("open", () => {
-            setupConnection();
-        });
-    
-        conn.on("error", e => console.error("CONNECTION ERROR:", e));
-    });
-    
-    peer.on("error", e => console.error("PEER ERROR:", e));
-    
-    };
+    peer = new Peer();
 
     peer.on("open", () => {
         const target = APP_PREFIX + room;
@@ -590,7 +566,7 @@ function joinGame() {
             joinStatusText.innerText = "Gagal connect ke host.";
         });
     });
-
+}
 
 
 function setupConnection(){

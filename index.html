@@ -470,8 +470,6 @@ function showMainMenu(){
     peer = null;
     conn = null;
 
-    // Buat Peer fresh untuk sesi berikutnya
-    setTimeout(()=> initPeerConnection(), 200);
 }
 
 // Input handlers
@@ -502,85 +500,74 @@ let opponentGameOver = false;
 const APP_PREFIX = "tetris-p2p-final-"; // unique prefix
 
 // HOST: create Peer with deterministic ID and accept incoming connection
-function hostGame(){
-    const name = hostRoomNameInput.value.trim();
-    if(!name) return alert("Masukkan nama room!");
-    if(!/^[a-zA-Z0-9]+$/.test(name)) return alert("Nama room hanya boleh huruf dan angka!");
-    if(hostStatusText){ hostStatusText.style.display='block'; hostStatusText.innerText='Membuat Room ID...'; }
+function hostGame() {
+    const room = hostRoomNameInput.value.trim();
+    if (!room) return alert("Nama room wajib diisi!");
 
-    const id = APP_PREFIX + name;
+    const id = APP_PREFIX + room;
+    hostStatusText.innerText = "Membuat room...";
+    hostStatusText.style.display = "block";
+
     peer = new Peer(id, {
-    config: {
-        iceServers: [
-            { urls: 'stun:stun.l.google.com:19302' },
-            {
-                urls: 'turn:relay1.expressturn.com:3478',
-                username: 'ef001c6f937a4500bee40317e2c94a65',
-                credential: '0e537e3f4e697b52a54b8e8bc7696ff0'
-            }
-        ]
-    },
-    debug: 2
-});
-
-
-    peer.on('open', id=>{
-        if(hostStatusText) hostStatusText.style.display='none';
-        isHost = true; isMultiplayer = true; myPeerID = id;
-        enterLobby(name);
+        config: {
+            iceServers: [
+                { urls: "stun:stun.l.google.com:19302" },
+                {
+                    urls: "turn:relay1.expressturn.com:3478",
+                    username: "ef001c6f937a4500bee40317e2c94a65",
+                    credential: "0e537e3f4e697b52a54b8e8bc7696ff0"
+                }
+            ]
+        }
     });
 
-    peer.on('connection', (connection)=>{
-        if(conn){ connection.close(); return; } // already have opponent
-        conn = connection;
+    peer.on("open", () => {
+        hostStatusText.style.display = "none";
+        isHost = true;
+        isMultiplayer = true;
+
+        enterLobby(room); // ⬅ Joiner akan masuk lobby yang sama
+    });
+
+    peer.on("connection", c => {
+        if (conn) return;
+        conn = c;
         setupConnection();
-        // send initial connected payload after a small delay
-        setTimeout(()=>{ sendData({ type:'CONNECTED', roomName:name }); updateLobbyUI(true); }, 400);
-    });
-
-    peer.on('error', err=>{
-        console.error(err);
-        if(err && err.type === 'unavailable-id') alert("Nama Room sudah dipakai! Coba nama lain.");
-        else alert("PeerJS error: " + (err && err.type ? err.type : String(err)));
-        if(hostStatusText) hostStatusText.style.display='none';
+        updateLobbyUI(true);
     });
 }
+
 
 // JOIN: create Peer (auto id) and connect to host id
-function joinGame(){
-    const name = joinRoomNameInput.value.trim();
-    if(!name) return alert("Masukkan nama room host!");
-    if(joinStatusText){ joinStatusText.style.display='block'; joinStatusText.innerText='Menghubungkan ke Host...'; }
+function joinGame() {
+    const room = joinRoomNameInput.value.trim();
+    if (!room) return alert("Masukkan nama room!");
+
+    joinStatusText.innerText = "Menghubungkan ke host...";
+    joinStatusText.style.display = "block";
 
     peer = new Peer();
-    peer.on('open', ()=>{
-        const targetId = APP_PREFIX + name;
-        conn = peer.connect(targetId);
 
-        conn.on('open', ()=>{
+    peer.on("open", () => {
+        const target = APP_PREFIX + room;
+        conn = peer.connect(target);
+
+        conn.on("open", () => {
             setupConnection();
-            if(joinStatusText) joinStatusText.style.display='none';
-            isHost = false; isMultiplayer = true;
-            enterLobby(name);
+            joinStatusText.style.display = "none";
+
+            isHost = false;
+            isMultiplayer = true;
+
+            enterLobby(room); // ⬅ Sekarang joiner benar2 masuk lobby
         });
 
-        conn.on('error', err=>{
-            console.warn('conn error', err);
-            if(joinStatusText){ joinStatusText.style.display='block'; joinStatusText.innerText='Gagal connect ke host.'; }
+        conn.on("error", () => {
+            joinStatusText.innerText = "Gagal connect ke host.";
         });
-
-        setTimeout(()=>{
-            if(!conn || !conn.open){
-                if(joinStatusText) joinStatusText.innerText = "Gagal menghubungkan (Host offline / Room tidak ada).";
-            }
-        }, 5000);
-    });
-
-    peer.on('error', err=>{
-        alert("PeerJS error: " + (err && err.type ? err.type : String(err)));
-        if(joinStatusText) joinStatusText.style.display='none';
     });
 }
+
 
 function setupConnection(){
     if(!conn) return;
@@ -755,7 +742,6 @@ function requestStartGame(){
 
 function disconnectMultiplayer() {
     if (conn && conn.open) {
-        sendData({ type: 'DISCONNECT_FORCE' });
         conn.close();
     }
 
@@ -763,36 +749,17 @@ function disconnectMultiplayer() {
         try { peer.destroy(); } catch(e){}
     }
 
-    conn = null;
     peer = null;
+    conn = null;
 
-    isMultiplayer = false;
     isHost = false;
-    isRunning = false;
+    isMultiplayer = false;
 
     hideAllMenus();
-    showMainMenu();
+    showMainMenu(); // ⬅ TAPI JANGAN ADA initPeerConnection DI DALAMNYA
 }
 
 
-
-function initPeerConnection() {
-    peer = new Peer({
-        config: {
-            iceServers: [
-                { urls: 'stun:stun.l.google.com:19302' },
-                {
-                    urls: 'turn:relay1.expressturn.com:3478',
-                    username: 'ef001c6f937a4500bee40317e2c94a65',
-                    credential: '0e537e3f4e697b52a54b8e8bc7696ff0'
-                }
-            ]
-        },
-        debug: 2
-    });
-
-    peer.on('error', err => console.warn("PeerJS error:", err));
-}
 
 
 function forceReturnToMainMenu() {
@@ -809,9 +776,6 @@ function forceReturnToMainMenu() {
     showMainMenu();
 
     // REGISTRASI ulang peer baru setelah disconnect benar
-    setTimeout(() => {
-        initPeerConnection();
-    }, 500);
 }
 
 
@@ -897,7 +861,6 @@ function updateMultiplayerResultUI() {
 
 </script>
 <script>
-    initPeerConnection();
 
 // GAMEPLAY: spawn/place/clear/update/draw etc.
 

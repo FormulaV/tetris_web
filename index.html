@@ -470,6 +470,8 @@ function showMainMenu(){
     peer = null;
     conn = null;
 
+    // Buat Peer fresh untuk sesi berikutnya
+    setTimeout(()=> initPeerConnection(), 200);
 }
 
 // Input handlers
@@ -505,15 +507,6 @@ function hostGame(){
     if(!name) return alert("Masukkan nama room!");
     if(!/^[a-zA-Z0-9]+$/.test(name)) return alert("Nama room hanya boleh huruf dan angka!");
     if(hostStatusText){ hostStatusText.style.display='block'; hostStatusText.innerText='Membuat Room ID...'; }
-
-    peer.on('open', id => {
-    console.log("Host ready:", id);
-    });
-
-    peer.on('disconnected', () => {
-    console.warn("Peer terputus, mencoba reconnect...");
-    peer.reconnect();
-    });
 
     const id = APP_PREFIX + name;
     peer = new Peer(id, {
@@ -559,15 +552,17 @@ function joinGame(){
     if(!name) return alert("Masukkan nama room host!");
     if(joinStatusText){ joinStatusText.style.display='block'; joinStatusText.innerText='Menghubungkan ke Host...'; }
 
-    peer = new Peer({
-    config: { iceServers: [...] }
-    });
-    
-    peer.on('open', () => {
-        console.log("Joiner peer created:", peer.id);
+    peer = new Peer();
+    peer.on('open', ()=>{
+        const targetId = APP_PREFIX + name;
         conn = peer.connect(targetId);
-    });
 
+        conn.on('open', ()=>{
+            setupConnection();
+            if(joinStatusText) joinStatusText.style.display='none';
+            isHost = false; isMultiplayer = true;
+            enterLobby(name);
+        });
 
         conn.on('error', err=>{
             console.warn('conn error', err);
@@ -902,6 +897,7 @@ function updateMultiplayerResultUI() {
 
 </script>
 <script>
+    initPeerConnection();
 
 // GAMEPLAY: spawn/place/clear/update/draw etc.
 

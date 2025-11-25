@@ -452,7 +452,28 @@ window.onload = function(){
 };
 function showMenu(id){ hideAllMenus(); const el=document.getElementById(id); if(el) el.style.display='flex'; }
 function hideAllMenus(){ const els=document.querySelectorAll('.overlay'); els.forEach(e=>e.style.display='none'); }
-function showMainMenu(){ hideAllMenus(); document.getElementById('mainMenu').style.display='flex'; isRunning=false; isPaused=true; isMultiplayer=false; multiplayerStatusEl.innerText='Mode: Singleplayer'; rivalScoreContainer.style.display='none'; stopBGM(); }
+function showMainMenu(){
+    hideAllMenus();
+    document.getElementById('mainMenu').style.display='flex';
+
+    isRunning=false;
+    isPaused=true;
+    isMultiplayer=false;
+    multiplayerStatusEl.innerText='Mode: Singleplayer';
+    rivalScoreContainer.style.display='none';
+    stopBGM();
+
+    // 🔥 FIX: destroy peer lama agar JOINER tidak gagal connect
+    if(peer && !peer.destroyed){
+        try { peer.destroy(); } catch(e) {}
+    }
+    peer = null;
+    conn = null;
+
+    // Buat Peer fresh untuk sesi berikutnya
+    setTimeout(()=> initPeerConnection(), 200);
+}
+
 // Input handlers
 function handleInput(e){ if(e.repeat || isPaused || !isRunning) return; const k=e.key.toLowerCase(); if(k==='arrowleft'||k==='a') move(-1); else if(k==='arrowright'||k==='d') move(1); else if(k==='arrowup'||k==='w') rotateCurrent(); else if(k==='arrowdown'||k==='s') softDrop(); else if(e.code==='Space') hardDrop(); else if(k==='c') swapHold(); else if(k==='p') { if(isPaused) resumeGame(); else { isPaused=true; showMenu('pauseMenu'); } } }
 /* -------------------
@@ -726,7 +747,7 @@ function disconnectMultiplayer() {
     }
 
     if (peer && !peer.destroyed) {
-        peer.destroy();
+        try { peer.destroy(); } catch(e){}
     }
 
     conn = null;
@@ -738,12 +759,8 @@ function disconnectMultiplayer() {
 
     hideAllMenus();
     showMainMenu();
-
-    // Buat peer baru untuk session baru
-    setTimeout(() => {
-        initPeerConnection();
-    }, 500);
 }
+
 
 
 function initPeerConnection() {
@@ -754,6 +771,17 @@ function initPeerConnection() {
     peer.on('error', (err) => {
         console.error("Peer error:", err);
     });
+
+    peer = new Peer({
+    config: {
+        'iceServers': [
+            { url: 'stun:stun.l.google.com:19302' },
+            { url: 'stun:global.stun.twilio.com:3478?transport=udp' }
+        ]
+    },
+    debug: 2
+});
+
 }
 
 function forceReturnToMainMenu() {

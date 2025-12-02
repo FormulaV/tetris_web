@@ -284,6 +284,26 @@ h1{display:none}
 /* Based on your uploaded files. Sources: dari-gemini-peerjs.html + tetri-multi.html. :contentReference[oaicite:2]{index=2} :contentReference[oaicite:3]{index=3} */
 
 // DOM
+// Init PeerJS langsung saat halaman dibuka
+let peer = new Peer({
+    config: {
+        iceServers: [
+            { urls: 'stun:stun.l.google.com:19302' },
+            {
+                urls: 'turn:relay1.expressturn.com:3478',
+                username: 'ef001c6f937a4500bee40317e2c94a65',
+                credential: '0e537e3f4e697b52a54b8e8bc7696ff0'
+            }
+        ]
+    },
+    debug: 2
+});
+
+peer.on('open', id => {
+    console.log("My Peer ID:", id);
+});
+
+    
 const boardCanvas = document.getElementById('board');
 const ctx = boardCanvas.getContext('2d');
 const nextCanvasCtx = document.getElementById('next').getContext('2d');
@@ -471,7 +491,6 @@ function showMainMenu(){
     conn = null;
 
     // Buat Peer fresh untuk sesi berikutnya
-    setTimeout(()=> initPeerConnection(), 200);
 }
 
 // Input handlers
@@ -754,21 +773,11 @@ function requestStartGame(){
 }
 
 function disconnectMultiplayer() {
-    if (conn && conn.open) {
-        sendData({ type: 'DISCONNECT_FORCE' });
-        conn.close();
-    }
-
-    if (peer && !peer.destroyed) {
-        try { peer.destroy(); } catch(e){}
-    }
+    if (conn && conn.open) conn.close();
 
     conn = null;
-    peer = null;
-
     isMultiplayer = false;
     isHost = false;
-    isRunning = false;
 
     hideAllMenus();
     showMainMenu();
@@ -809,9 +818,6 @@ function forceReturnToMainMenu() {
     showMainMenu();
 
     // REGISTRASI ulang peer baru setelah disconnect benar
-    setTimeout(() => {
-        initPeerConnection();
-    }, 500);
 }
 
 
@@ -897,7 +903,6 @@ function updateMultiplayerResultUI() {
 
 </script>
 <script>
-    initPeerConnection();
 
 // GAMEPLAY: spawn/place/clear/update/draw etc.
 

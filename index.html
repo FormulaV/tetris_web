@@ -299,12 +299,6 @@ let peer = new Peer({
     debug: 2
 });
 
-let conn = null;
-let isHost = false;
-let isMultiplayer = false;
-let myPeerID = null;
-let opponentScore = 0;
-let opponentGameOver = false;
 
 peer.on("open", id => {
     console.log("Peer Connected:", id);
@@ -491,12 +485,11 @@ function showMainMenu(){
     rivalScoreContainer.style.display='none';
     stopBGM();
 
-    // 🔥 FIX: destroy peer lama agar JOINER tidak gagal connect
-    peer = null;
-    conn = null;
+    if(conn) { conn.close(); conn = null; }
 
-    // Buat Peer fresh untuk sesi berikutnya
+    // Jangan hapus peer! Peer harus tetap aktif
 }
+
 
 // Input handlers
 function handleInput(e){ if(e.repeat || isPaused || !isRunning) return; const k=e.key.toLowerCase(); if(k==='arrowleft'||k==='a') move(-1); else if(k==='arrowright'||k==='d') move(1); else if(k==='arrowup'||k==='w') rotateCurrent(); else if(k==='arrowdown'||k==='s') softDrop(); else if(e.code==='Space') hardDrop(); else if(k==='c') swapHold(); else if(k==='p') { if(isPaused) resumeGame(); else { isPaused=true; showMenu('pauseMenu'); } } }
@@ -516,7 +509,6 @@ function checkOrientation() {
 window.addEventListener("resize", checkOrientation);
 checkOrientation();
 
-let peer = null;
 let conn = null;
 let isMultiplayer = false;
 let isHost = false;

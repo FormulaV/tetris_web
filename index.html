@@ -525,12 +525,32 @@ function hostGame(){
     isHost = true;
     isMultiplayer = true;
 
-    // Buat ID host berdasarkan input
     const roomId = APP_PREFIX + room;
-    peer.id = roomId;
 
-    enterLobby(room);
-    document.getElementById("lobbyRoomName").innerText = roomId;
+    // 🔥 Destroy peer lama kalau ada
+    if(peer) {
+        peer.destroy();
+    }
+
+    // 🔥 Buat ulang Peer DENGAN ID ROOM
+    peer = new Peer(roomId, {
+        config: {
+            iceServers: [
+                { urls: "stun:stun.l.google.com:19302" },
+                {
+                    urls: "turn:relay1.expressturn.com:3478",
+                    username: "ef001c6f937a4500bee40317e2c94a65",
+                    credential: "0e537e3f4e697b52a54b8e8bc7696ff0"
+                }
+            ]
+        },
+        debug: 2
+    });
+
+    peer.on("open", () => {
+        console.log("Host ready with ID:", roomId);
+        enterLobby(room);
+    });
 
     peer.on("connection", (c)=>{
         conn = c;
@@ -540,23 +560,47 @@ function hostGame(){
 }
 
 
+
 // JOIN: create Peer (auto id) and connect to host id
 function joinGame(){
     const room = joinRoomNameInput.value.trim();
     if(!room) return alert("Masukkan Room ID!");
 
     const targetId = APP_PREFIX + room;
+
+    // Pastikan peer aktif
+    if(!peer || peer.destroyed) {
+        peer = new Peer({
+            config: {
+                iceServers: [
+                    { urls: "stun:stun.l.google.com:19302" },
+                    {
+                        urls: "turn:relay1.expressturn.com:3478",
+                        username: "ef001c6f937a4500bee40317e2c94a65",
+                        credential: "0e537e3f4e697b52a54b8e8bc7696ff0"
+                    }
+                ]
+            },
+            debug: 2
+        });
+    }
+
     conn = peer.connect(targetId);
 
     conn.on("open", ()=>{
+        console.log("Connected to host:", targetId);
         isHost = false;
         isMultiplayer = true;
         setupConnection();
         enterLobby(room);
     });
 
-    conn.on("close", ()=> alert("Host offline!"));
+    conn.on("error", ()=>{
+        alert("Room tidak ditemukan!");
+        console.warn("Koneksi gagal ke:", targetId);
+    });
 }
+
 
 
 function setupConnection(){
